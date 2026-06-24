@@ -1,0 +1,61 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: parkir-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: parkir
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile.dev
+    container_name: parkir-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ENV: development
+      PORT: 8080
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/parkir?sslmode=disable
+      JWT_SECRET: dev-secret-change-in-production
+      LOG_LEVEL: debug
+      FRONTEND_URL: http://localhost:3000
+      MIGRATIONS_PATH: backend/migrations
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app/backend
+      - go_mod_cache:/go/pkg/mod
+    working_dir: /app
+    command: ["air", "-c", "backend/.air.toml"]
+
+  dashboard:
+    image: node:20-alpine
+    container_name: parkir-dashboard
+    working_dir: /app
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./dashboard:/app
+      - node_modules_dashboard:/app/node_modules
+    command: ["npm", "run", "dev"]
+
+volumes:
+  postgres_data:
+  go_mod_cache:
+  node_modules_dashboard:
