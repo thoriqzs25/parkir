@@ -20,6 +20,9 @@ import (
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/locations"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/rates"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/roles"
+	"github.com/thoriqzs/PARKIR/backend/internal/domain/sessions"
+	"github.com/thoriqzs/PARKIR/backend/internal/domain/shifts"
+	"github.com/thoriqzs/PARKIR/backend/internal/domain/transactions"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/users"
 	"github.com/thoriqzs/PARKIR/backend/internal/logger"
 	"github.com/thoriqzs/PARKIR/backend/internal/middleware"
@@ -77,11 +80,15 @@ func main() {
 	api := router.Group("/api/v1")
 	api.Use(middleware.Auth(authService, permResolver))
 	{
-	users.NewHandler(store).RegisterRoutes(api)
-	roles.NewHandler(store).RegisterRoutes(api)
+		users.NewHandler(store).RegisterRoutes(api)
+		roles.NewHandler(store).RegisterRoutes(api)
 
-	locations.NewHandler(store).RegisterRoutes(api)
-	rates.NewHandler(store).RegisterRoutes(api.Group("/locations"), api.Group("/rates"))
+		locations.NewHandler(store).RegisterRoutes(api)
+		rates.NewHandler(store).RegisterRoutes(api.Group("/locations"), api.Group("/rates"))
+
+		sessions.NewHandler(store).RegisterRoutes(api)
+		transactions.NewHandler(store).RegisterRoutes(api)
+		shifts.NewHandler(store).RegisterRoutes(api)
 	}
 
 	srv := &http.Server{

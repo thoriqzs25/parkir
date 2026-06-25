@@ -115,8 +115,22 @@ Authentication uses RS256 JWT in an `access_token` httpOnly cookie.
 | GET | `/locations/:id/rates` | `rates:view` | List rates for location |
 | POST | `/locations/:id/rates` | `rates:create` | Create rate for location |
 | PATCH | `/rates/:id` | `rates:edit` | Update rate |
+| POST | `/sessions/check-in` | `sessions:create` | Check in a vehicle |
+| GET | `/sessions` | `sessions:view` | List sessions |
+| GET | `/sessions/:id` | `sessions:view` | Get session |
+| POST | `/sessions/:id/check-out` | `sessions:close` | Check out and calculate fee |
+| POST | `/payments/cash` | `payments:collect_cash` | Record cash payment |
+| POST | `/payments/digital` | `payments:collect_digital` | Record digital payment |
+| GET | `/transactions` | `sessions:view` | List transactions |
+| GET | `/transactions/:id` | `sessions:view` | Get transaction |
+| POST | `/transactions/:id/void` | `payments:void` | Void transaction (manager PIN) |
+| POST | `/shifts/start` | `shifts:start` | Start operator shift |
+| GET | `/shifts` | `shifts:view` | List shifts |
+| GET | `/shifts/:id` | `shifts:view` | Get shift |
+| POST | `/shifts/:id/end` | `shifts:end` | End shift with cash handover |
+| POST | `/shifts/:id/force-close` | `shifts:force_close` | Force-close open shift |
 
-Responses use the envelope format `{ data, error, meta }`.
+Responses use the envelope format `{ data, error, meta }`. List endpoints return `{ data: { items, meta } }`.
 
 ## Documentation
 

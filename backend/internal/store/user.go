@@ -100,12 +100,12 @@ func (s *Store) GetUserByEmail(ctx context.Context, email string) (*User, error)
 func (s *Store) GetUserByID(ctx context.Context, id string) (*User, error) {
 	var user User
 	err := s.pool.QueryRow(ctx, `
-		SELECT u.id, u.name, u.email, u.role_id, r.name as role_name, u.status, u.created_at, u.updated_at
+		SELECT u.id, u.name, u.email, u.password_hash, u.pin_hash, u.role_id, r.name as role_name, u.status, u.created_at, u.updated_at
 		FROM users u
 		JOIN roles r ON r.id = u.role_id
 		WHERE u.id = $1
 	`, id).Scan(
-		&user.ID, &user.Name, &user.Email, &user.RoleID, &user.RoleName,
+		&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.PINHash, &user.RoleID, &user.RoleName,
 		&user.Status, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {

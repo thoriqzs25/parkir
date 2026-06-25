@@ -491,22 +491,23 @@ Sequence resets daily per location. Use a per-location daily sequence table with
 
 ---
 
-### Milestone 2 — Backend Business Logic (Weeks 5–7)
+### Milestone 2 — Backend Business Logic (Weeks 5–7) 🔄 IN PROGRESS
 **Focus:** Core parking operations — sessions, payments, receipts, shifts.
 
-- [ ] `sessions` table migration
-- [ ] Check-in endpoint with plate normalization and duplicate active plate warning
-- [ ] Check-out endpoint with fee calculation engine
-- [ ] `transactions` table migration
-- [ ] Cash payment recording + change calculation
-- [ ] Digital (mock) payment recording
-- [ ] Receipt number sequence generation (per location/day, race-safe)
-- [ ] `shifts` table migration + start/end shift endpoints
-- [ ] Shift cash handover + discrepancy calculation
-- [ ] Cross-shift attribution: `sessions.shift_id` (check-in) vs `transactions.shift_id` (payment)
-- [ ] Audit log writes for session, transaction, and shift events
+- [x] `sessions` table migration
+- [x] Check-in endpoint with plate normalization and duplicate active plate warning
+- [x] Check-out endpoint with fee calculation engine
+- [x] `transactions` table migration
+- [x] Cash payment recording + change calculation
+- [x] Digital (mock) payment recording
+- [x] Receipt number sequence generation (per location/day, race-safe)
+- [x] `shifts` table migration + start/end shift endpoints
+- [x] Shift cash handover + discrepancy calculation
+- [x] Cross-shift attribution: `sessions.shift_id` (check-in) vs `transactions.shift_id` (payment)
+- [x] Audit log writes for session, transaction, and shift events
+- [ ] Integration test scaffolding and CI
 
-**Definition of done:** Full check-in → check-out → payment → receipt flow works via API; shift discrepancy is calculated correctly.
+**Definition of done:** Full check-in → check-out → payment → receipt flow works via API; shift discrepancy is calculated correctly; integration tests pass.
 
 ---
 
