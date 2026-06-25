@@ -1,0 +1,16 @@
+meta {
+  name: Update User
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{apiV1}}/users/{{userId}}
+  body: json
+  auth: none
+}
+body:json {
+{
+  "name": "John Updated"
+}
+}

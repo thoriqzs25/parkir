@@ -1,0 +1,20 @@
+meta {
+  name: Create Role
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{apiV1}}/roles
+  body: json
+  auth: none
+}
+body:json {
+{
+  "name": "supervisor",
+  "permissions": [
+    "sessions:view",
+    "transactions:view"
+  ]
+}
+}

@@ -1,0 +1,19 @@
+meta {
+  name: Check In
+  type: http
+  seq: 27
+}
+
+post {
+  url: {{apiV1}}/sessions/check-in
+  body: json
+  auth: none
+}
+body:json {
+{
+  "location_id": "{{locationId}}",
+  "plate": "B1234XYZ",
+  "city_code": "B",
+  "vehicle_type": "CAR"
+}
+}

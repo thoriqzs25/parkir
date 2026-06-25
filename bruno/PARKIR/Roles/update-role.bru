@@ -1,0 +1,18 @@
+meta {
+  name: Update Role
+  type: http
+  seq: 15
+}
+
+patch {
+  url: {{apiV1}}/roles/{{roleId}}
+  body: json
+  auth: none
+}
+body:json {
+{
+  "permissions": [
+    "sessions:view"
+  ]
+}
+}

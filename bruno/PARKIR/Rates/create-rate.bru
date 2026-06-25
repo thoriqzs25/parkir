@@ -1,0 +1,20 @@
+meta {
+  name: Create Rate
+  type: http
+  seq: 25
+}
+
+post {
+  url: {{apiV1}}/locations/{{locationId}}/rates
+  body: json
+  auth: none
+}
+body:json {
+{
+  "vehicle_type": "CAR",
+  "first_hour_rate": 5000,
+  "subsequent_hourly_rate": 3000,
+  "daily_flat_rate": 50000,
+  "effective_from": "2024-01-01T00:00:00Z"
+}
+}

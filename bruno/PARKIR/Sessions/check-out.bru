@@ -1,0 +1,17 @@
+meta {
+  name: Check Out
+  type: http
+  seq: 31
+}
+
+post {
+  url: {{apiV1}}/sessions/{{sessionId}}/check-out
+  body: json
+  auth: none
+}
+body:json {
+{
+  "check_out_at": "2024-01-01T03:00:00Z",
+  "fee_amount": 11000
+}
+}

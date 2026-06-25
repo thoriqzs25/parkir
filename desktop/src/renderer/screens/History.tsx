@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { listSessions } from "../lib/api";
 import { useAuth } from "../contexts/AuthContext";

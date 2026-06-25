@@ -1,0 +1,23 @@
+meta {
+  name: Create User
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{apiV1}}/users
+  body: json
+  auth: none
+}
+body:json {
+{
+  "name": "John Doe",
+  "email": "john@parkir.local",
+  "password": "password123",
+  "pin": "123456",
+  "role_id": "{{roleId}}",
+  "location_ids": [
+    "{{locationId}}"
+  ]
+}
+}

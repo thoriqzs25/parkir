@@ -1,0 +1,16 @@
+meta {
+  name: Reset PIN
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{apiV1}}/users/{{userId}}/reset-pin
+  body: json
+  auth: none
+}
+body:json {
+{
+  "pin": "654321"
+}
+}

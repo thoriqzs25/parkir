@@ -1,0 +1,16 @@
+meta {
+  name: Start Shift
+  type: http
+  seq: 37
+}
+
+post {
+  url: {{apiV1}}/shifts/start
+  body: json
+  auth: none
+}
+body:json {
+{
+  "location_id": "{{locationId}}"
+}
+}
