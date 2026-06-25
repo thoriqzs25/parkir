@@ -80,6 +80,8 @@ func main() {
 	api := router.Group("/api/v1")
 	api.Use(middleware.Auth(authService, permResolver))
 	{
+		api.GET("/auth/me", authHandler.Me)
+
 		users.NewHandler(store).RegisterRoutes(api)
 		roles.NewHandler(store).RegisterRoutes(api)
 

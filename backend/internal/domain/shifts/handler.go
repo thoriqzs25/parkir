@@ -251,6 +251,35 @@ func (h *Handler) Get(c *gin.Context) {
 		return
 	}
 
+	include := c.Query("include")
+	if include == "transactions" {
+		transactions, total, err := h.store.ListTransactions(c.Request.Context(), store.ListTransactionsFilters{
+			ShiftID: shift.ID,
+		}, 100, 0)
+		if err != nil {
+			_ = c.Error(err)
+			response.InternalServerError(c)
+			return
+		}
+
+		expectedCash, err := h.store.SumCashByShift(c.Request.Context(), shift.ID)
+		if err != nil {
+			_ = c.Error(err)
+			response.InternalServerError(c)
+			return
+		}
+
+		response.OK(c, gin.H{
+			"shift":        shift,
+			"transactions": transactions,
+			"summary": gin.H{
+				"transaction_count": total,
+				"expected_cash":     expectedCash,
+			},
+		})
+		return
+	}
+
 	response.OK(c, shift)
 }
 

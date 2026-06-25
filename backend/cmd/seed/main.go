@@ -58,9 +58,10 @@ func seed(ctx context.Context, pool *pgxpool.Pool) error {
 			name: "manager",
 			permissions: []string{
 				"sessions:view", "reports:*", "incidents:*", "adjustments:*",
-				"locations:view", "rates:view", "shifts:view", "shifts:force_close",
+				"locations:*", "rates:*", "shifts:view", "shifts:force_close",
 				"shifts:resolve_discrepancy", "observability:view_health",
-				"observability:view_alerts",
+				"observability:view_alerts", "users:*", "payments:view",
+				"payments:void", "finance:view_transactions",
 			},
 		},
 		{

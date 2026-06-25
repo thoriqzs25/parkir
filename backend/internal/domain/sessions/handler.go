@@ -252,6 +252,20 @@ func (h *Handler) Get(c *gin.Context) {
 		return
 	}
 
+	include := c.Query("include")
+	if include == "transaction" {
+		tx, err := h.store.GetTransactionBySessionID(c.Request.Context(), session.ID)
+		if err != nil && err != errors.ErrNotFound {
+			response.InternalServerError(c)
+			return
+		}
+		response.OK(c, gin.H{
+			"session":     session,
+			"transaction": tx,
+		})
+		return
+	}
+
 	response.OK(c, session)
 }
 

@@ -50,8 +50,13 @@ func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 		locationsWithManage.POST("", h.Create)
 		locationsWithManage.PATCH("/:id", h.Update)
 		locationsWithManage.POST("/:id/deactivate", h.Deactivate)
-		locationsWithManage.POST("/:id/assign-operator", h.AssignOperator)
-		locationsWithManage.POST("/:id/remove-operator", h.RemoveOperator)
+	}
+
+	locationsWithAssign := r.Group("/locations")
+	locationsWithAssign.Use(middleware.RequirePermission("locations:assign_operators"))
+	{
+		locationsWithAssign.POST("/:id/assign-operator", h.AssignOperator)
+		locationsWithAssign.POST("/:id/remove-operator", h.RemoveOperator)
 	}
 }
 

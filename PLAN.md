@@ -491,7 +491,7 @@ Sequence resets daily per location. Use a per-location daily sequence table with
 
 ---
 
-### Milestone 2 — Backend Business Logic (Weeks 5–7) 🔄 IN PROGRESS
+### Milestone 2 — Backend Business Logic (Weeks 5–7) ✅ COMPLETE
 **Focus:** Core parking operations — sessions, payments, receipts, shifts.
 
 - [x] `sessions` table migration
@@ -505,27 +505,30 @@ Sequence resets daily per location. Use a per-location daily sequence table with
 - [x] Shift cash handover + discrepancy calculation
 - [x] Cross-shift attribution: `sessions.shift_id` (check-in) vs `transactions.shift_id` (payment)
 - [x] Audit log writes for session, transaction, and shift events
-- [ ] Integration test scaffolding and CI
+- [x] Integration test scaffolding and CI
 
 **Definition of done:** Full check-in → check-out → payment → receipt flow works via API; shift discrepancy is calculated correctly; integration tests pass.
 
 ---
 
-### Milestone 3 — Web Dashboard Foundation (Weeks 6–8)
+### Milestone 3 — Web Dashboard Foundation (Weeks 6–8) ✅ COMPLETE
 **Focus:** Manager-facing management and operational pages. Starts in parallel with Milestone 2 once API contracts are stable.
 
-- [ ] Login page
-- [ ] Layout with navigation and location selector
-- [ ] Users management page (CRUD, role assignment, location assignment)
-- [ ] Roles & permissions page
-- [ ] Locations management page
-- [ ] Rates configuration page
-- [ ] Active sessions page
-- [ ] Session history page with filters
-- [ ] Transactions list page
-- [ ] Shifts list and detail page
+- [x] Login page
+- [x] Layout with navigation and location selector
+- [x] Users management page (CRUD, reset password/PIN, role assignment)
+- [x] Roles & permissions page
+- [x] Locations management page (assign/remove operators)
+- [x] Rates configuration page
+- [x] Active sessions page
+- [x] Session history page with filters
+- [x] Session detail page with linked transaction
+- [x] Transactions list page
+- [x] Shifts list page
+- [x] Shifts detail page with transactions and cash summary
+- [x] CI: backend tests, dashboard build, dashboard type-check
 
-**Definition of done:** Managers can configure the system and view sessions/transactions/shifts entirely through the dashboard.
+**Definition of done:** Managers can configure the system and view sessions/transactions/shifts entirely through the dashboard; backend integration tests pass; dashboard builds and type-checks successfully.
 
 ---
 

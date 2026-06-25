@@ -93,6 +93,7 @@ Authentication uses RS256 JWT in an `access_token` httpOnly cookie.
 | POST | `/auth/login` | — | Login with email/password |
 | POST | `/auth/logout` | — | Clear auth cookie |
 | POST | `/auth/refresh` | — | Refresh access token |
+| GET | `/auth/me` | — | Get current user |
 | GET | `/users` | `users:view` | List users |
 | GET | `/users/:id` | `users:view` | Get user |
 | POST | `/users` | `users:create` | Create user |
@@ -110,14 +111,14 @@ Authentication uses RS256 JWT in an `access_token` httpOnly cookie.
 | POST | `/locations` | `locations:create` | Create location |
 | PATCH | `/locations/:id` | `locations:create` | Update location |
 | POST | `/locations/:id/deactivate` | `locations:create` | Deactivate location |
-| POST | `/locations/:id/assign-operator` | `locations:create` | Assign operator |
-| POST | `/locations/:id/remove-operator` | `locations:create` | Remove operator |
+| POST | `/locations/:id/assign-operator` | `locations:assign_operators` | Assign operator |
+| POST | `/locations/:id/remove-operator` | `locations:assign_operators` | Remove operator |
 | GET | `/locations/:id/rates` | `rates:view` | List rates for location |
 | POST | `/locations/:id/rates` | `rates:create` | Create rate for location |
 | PATCH | `/rates/:id` | `rates:edit` | Update rate |
 | POST | `/sessions/check-in` | `sessions:create` | Check in a vehicle |
 | GET | `/sessions` | `sessions:view` | List sessions |
-| GET | `/sessions/:id` | `sessions:view` | Get session |
+| GET | `/sessions/:id` | `sessions:view` | Get session (use `?include=transaction`) |
 | POST | `/sessions/:id/check-out` | `sessions:close` | Check out and calculate fee |
 | POST | `/payments/cash` | `payments:collect_cash` | Record cash payment |
 | POST | `/payments/digital` | `payments:collect_digital` | Record digital payment |
@@ -126,11 +127,34 @@ Authentication uses RS256 JWT in an `access_token` httpOnly cookie.
 | POST | `/transactions/:id/void` | `payments:void` | Void transaction (manager PIN) |
 | POST | `/shifts/start` | `shifts:start` | Start operator shift |
 | GET | `/shifts` | `shifts:view` | List shifts |
-| GET | `/shifts/:id` | `shifts:view` | Get shift |
+| GET | `/shifts/:id` | `shifts:view` | Get shift (use `?include=transactions`)
 | POST | `/shifts/:id/end` | `shifts:end` | End shift with cash handover |
 | POST | `/shifts/:id/force-close` | `shifts:force_close` | Force-close open shift |
 
 Responses use the envelope format `{ data, error, meta }`. List endpoints return `{ data: { items, meta } }`.
+
+## Dashboard Pages
+
+After logging in, the dashboard defaults to the user's first assigned location. Navigation includes:
+
+- **Active Sessions** — live view of `ACTIVE` and `PENDING_PAYMENT` sessions with manual refresh.
+- **Session History** — closed/voided sessions with plate filter and load-more pagination.
+- **Session Detail** — full session info and linked transaction (via `?include=transaction`).
+- **Transactions** — payment records with void badge and status filter.
+- **Shifts** — operator shifts with summary list.
+- **Shift Detail** — shift summary, cash summary, and transaction list (via `?include=transactions`).
+- **Locations** — create, edit, deactivate, assign/remove operators.
+- **Rates** — create and edit rates in a separate dialog/form.
+- **Users** — create, edit, deactivate, reset password/PIN, assign locations.
+- **Roles** — create, edit, soft-delete with permission allow-list.
+
+## Local Development Notes
+
+- Backend runs on `http://localhost:8080`.
+- Dashboard runs on `http://localhost:3000`.
+- Dashboard uses `NEXT_PUBLIC_API_URL` (default `http://localhost:8080`).
+- Auth uses httpOnly `access_token` cookie; dashboard fetch calls use `credentials: 'include'`.
+- All dashboard timestamps are displayed in Asia/Jakarta (WIB, UTC+7).
 
 ## Documentation
 
@@ -138,4 +162,6 @@ Responses use the envelope format `{ data, error, meta }`. List endpoints return
 - `MILESTONE_PLANNING.md` — Milestone planning workflow
 - `plans/milestone-0.md` — Foundation milestone plan
 - `plans/milestone-1.md` — Backend Core Entities milestone plan
+- `plans/milestone-2.md` — Backend Business Logic milestone plan
+- `plans/milestone-3.md` — Web Dashboard Foundation milestone plan
 - `specs/` — Full product specifications

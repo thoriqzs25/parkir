@@ -16,6 +16,7 @@ dashboard/node_modules/
 dashboard/.next/
 dashboard/out/
 dashboard/build/
+dashboard/tsconfig.tsbuildinfo
 dashboard/npm-debug.log*
 dashboard/yarn-debug.log*
 dashboard/yarn-error.log*

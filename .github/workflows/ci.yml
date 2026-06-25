@@ -9,6 +9,19 @@ on:
 jobs:
   build-backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: parkir_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@v4
 
@@ -24,6 +37,12 @@ jobs:
       - name: Build backend
         working-directory: ./backend
         run: go build ./...
+
+      - name: Run backend tests
+        working-directory: ./backend
+        env:
+          PARKIR_TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/parkir_test?sslmode=disable
+        run: go test ./... -count=1
 
   build-dashboard:
     runs-on: ubuntu-latest
@@ -41,8 +60,14 @@ jobs:
         working-directory: ./dashboard
         run: npm ci
 
+      - name: Type check dashboard
+        working-directory: ./dashboard
+        run: npx tsc --noEmit
+
       - name: Build dashboard
         working-directory: ./dashboard
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8080
         run: npm run build
 
   build-desktop:

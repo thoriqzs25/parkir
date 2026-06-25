@@ -1,10 +1,26 @@
-export default function Home() {
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+
+export default function HomePage() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading) {
+      if (user) {
+        router.replace("/select");
+      } else {
+        router.replace("/login");
+      }
+    }
+  }, [loading, user, router]);
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-4xl font-bold mb-4">PARKIR Dashboard</h1>
-      <p className="text-lg text-gray-600">
-        Parking Administration System — Manager Dashboard
-      </p>
-    </main>
+    <div className="flex min-h-screen items-center justify-center">
+      <p className="text-gray-500">Redirecting...</p>
+    </div>
   );
 }

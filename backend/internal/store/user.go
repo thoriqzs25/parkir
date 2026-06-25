@@ -146,6 +146,11 @@ func (s *Store) ListUsers(ctx context.Context, limit, offset int) ([]User, int, 
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan user: %w", err)
 		}
+		locationIDs, err := s.getUserLocationIDs(ctx, user.ID)
+		if err != nil {
+			return nil, 0, err
+		}
+		user.LocationIDs = locationIDs
 		users = append(users, user)
 	}
 

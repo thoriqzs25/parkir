@@ -11,3 +11,7 @@ type Store struct {
 func New(pool *pgxpool.Pool) *Store {
 	return &Store{pool: pool}
 }
+
+func (s *Store) Pool() *pgxpool.Pool {
+	return s.pool
+}

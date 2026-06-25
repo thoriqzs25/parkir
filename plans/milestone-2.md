@@ -1,6 +1,6 @@
 # Milestone 2 — Backend Business Logic
 
-**Status:** In Progress — Backend implementation complete, pending integration tests and CI update.
+**Status:** Completed — Backend implementation, integration test scaffolding, and CI update done.
 
 ## 1. Goal
 
@@ -141,7 +141,7 @@ Implement the core parking operations API: sessions, fee calculation, payments, 
 ### Dashboard
 
 - [x] No dashboard UI in this milestone; API-only focus.
-- [ ] Optional: create TypeScript types for `Session`, `Transaction`, `Shift`, `Receipt` in `dashboard/types/` for use in Milestone 3.
+- [x] Optional: create TypeScript types for `Session`, `Transaction`, `Shift`, `Receipt` in `dashboard/types/` for use in Milestone 3.
 
 ### Desktop
 
@@ -149,8 +149,8 @@ Implement the core parking operations API: sessions, fee calculation, payments, 
 
 ### DevOps / QA
 
-- [ ] Add integration test scaffolding with a test database.
-- [ ] Add backend integration tests for:
+- [x] Add integration test scaffolding with a test database.
+- [x] Add backend integration tests for:
   - Full check-in → check-out → cash payment → receipt flow.
   - Digital payment flow.
   - Manual fee override when no rate exists.
@@ -160,7 +160,7 @@ Implement the core parking operations API: sessions, fee calculation, payments, 
   - Void transaction by manager with PIN.
   - Cross-operator check-out.
 - [x] Add curl/HTTP examples for sessions, payments, shifts, and voids to `README.md`.
-- [ ] Update CI workflow to run backend integration tests.
+- [x] Update CI workflow to run backend integration tests.
 
 ---
 

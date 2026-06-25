@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	authsvc "github.com/thoriqzs/PARKIR/backend/internal/auth"
 	"github.com/thoriqzs/PARKIR/backend/internal/errors"
+	"github.com/thoriqzs/PARKIR/backend/internal/middleware"
 	"github.com/thoriqzs/PARKIR/backend/internal/response"
 	"github.com/thoriqzs/PARKIR/backend/internal/store"
 )
@@ -31,6 +32,11 @@ type LoginRequest struct {
 type LoginResponse struct {
 	User  *store.User `json:"user"`
 	Token string      `json:"token"`
+}
+
+type MeResponse struct {
+	User        *store.User `json:"user"`
+	Permissions []string    `json:"permissions"`
 }
 
 func (h *Handler) RegisterRoutes(r *gin.Engine) {
@@ -98,6 +104,37 @@ func (h *Handler) Logout(c *gin.Context) {
 		true,
 	)
 	response.OK(c, gin.H{"message": "logged out"})
+}
+
+func (h *Handler) Me(c *gin.Context) {
+	userID, exists := c.Get(string(middleware.ContextUserIDKey))
+	if !exists {
+		response.Unauthorized(c, "missing user context")
+		return
+	}
+
+	id, ok := userID.(string)
+	if !ok {
+		response.Unauthorized(c, "invalid user context")
+		return
+	}
+
+	user, err := h.store.GetUserByID(c.Request.Context(), id)
+	if err != nil {
+		if err == errors.ErrNotFound {
+			response.Unauthorized(c, "user not found")
+			return
+		}
+		response.InternalServerError(c)
+		return
+	}
+
+	perms := middleware.GetPermissions(c)
+
+	response.OK(c, MeResponse{
+		User:        user,
+		Permissions: perms,
+	})
 }
 
 func (h *Handler) Refresh(c *gin.Context) {
