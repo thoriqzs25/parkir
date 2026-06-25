@@ -30,14 +30,16 @@ services:
       ENV: development
       PORT: 8080
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/parkir?sslmode=disable
-      JWT_SECRET: dev-secret-change-in-production
       LOG_LEVEL: debug
       FRONTEND_URL: http://localhost:3000
       MIGRATIONS_PATH: backend/migrations
+      JWT_PRIVATE_KEY_PATH: backend/dev-keys/jwt-private.pem
+      JWT_PUBLIC_KEY_PATH: backend/dev-keys/jwt-public.pem
     ports:
       - "8080:8080"
     volumes:
       - ./backend:/app/backend
+      - ./backend/dev-keys:/app/backend/dev-keys
       - go_mod_cache:/go/pkg/mod
     working_dir: /app
     command: ["air", "-c", "backend/.air.toml"]

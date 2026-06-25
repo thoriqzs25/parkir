@@ -37,12 +37,25 @@ func RequestLogger(log *logger.Logger) gin.HandlerFunc {
 }
 
 func Recovery(log *logger.Logger) gin.HandlerFunc {
-	return gin.RecoveryWithWriter(gin.DefaultErrorWriter)
+	return func(c *gin.Context) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Error("panic recovered", "error", err, "path", c.Request.URL.Path)
+				c.AbortWithStatusJSON(500, gin.H{"error": "internal server error"})
+			}
+		}()
+		c.Next()
+	}
 }
 
 func CORS(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", cfg.FrontendURL)
+		origin := c.Request.Header.Get("Origin")
+		if origin == "" {
+			origin = cfg.FrontendURL
+		}
+
+		c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")

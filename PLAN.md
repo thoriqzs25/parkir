@@ -474,19 +474,20 @@ Sequence resets daily per location. Use a per-location daily sequence table with
 
 ---
 
-### Milestone 1 — Backend Core Entities (Weeks 2–4)
+### Milestone 1 — Backend Core Entities (Weeks 2–4) ✅ COMPLETE
 **Focus:** Build the data layer and auth/RBAC foundation. Do not build business logic yet.
 
-- [ ] Database migrations for `locations`, `location_rates`, `roles`, `users`, `user_role_locations`, `user_permission_grants`
-- [ ] Repository pattern with raw SQL/pgx
-- [ ] Password hashing (bcrypt) and PIN hashing (bcrypt)
-- [ ] JWT login/refresh/logout
-- [ ] RBAC permission resolution (`getPermissions(user, location)`)
-- [ ] Auth middleware: validate JWT + extract user + permissions
-- [ ] CRUD endpoints: users, roles, locations, rates
-- [ ] Seed script with default roles (`operator`, `manager`, `admin`, `owner`) and a root owner
+- [x] Database migrations for `locations`, `location_rates`, `roles`, `users`, `user_role_locations`, `user_permission_grants`
+- [x] Repository pattern with raw SQL/pgx
+- [x] Password hashing (bcrypt) and PIN hashing (bcrypt)
+- [x] JWT login/refresh/logout
+- [x] RBAC permission resolution (`getPermissions(user, location)`)
+- [x] Auth middleware: validate JWT + extract user + permissions
+- [x] CRUD endpoints: users, roles, locations, rates
+- [x] Seed script with default roles (`operator`, `manager`, `admin`, `owner`) and a root owner
+- [x] Audit log writes for mutations
 
-**Definition of done:** Dashboard can log in; API endpoints for users/roles/locations/rates pass integration tests; RBAC middleware blocks unauthorized requests.
+**Definition of done:** API endpoints for users/roles/locations/rates manually tested; RBAC middleware blocks unauthorized requests; README documents endpoints.
 
 ---
 

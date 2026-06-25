@@ -1,4 +1,4 @@
-.PHONY: dev stop build lint migrate-up migrate-down seed backend-dashboard desktop
+.PHONY: dev stop build lint test-backend migrate-up migrate-down migrate-create seed generate-jwt-keys backend-run dashboard-run desktop-run
 
 # Development
 
@@ -11,17 +11,23 @@ stop:
 # Migrations
 
 migrate-up:
-	cd backend && go run github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
-		-path migrations -database "$(DATABASE_URL)" up
+	cd backend && DATABASE_URL="$(DATABASE_URL)" go run ./cmd/migrate -direction up
 
 migrate-down:
-	cd backend && go run github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
-		-path migrations -database "$(DATABASE_URL)" down 1
+	cd backend && DATABASE_URL="$(DATABASE_URL)" go run ./cmd/migrate -direction down
+
+migrate-create:
+	cd backend && go run github.com/golang-migrate/migrate/v4/cmd/migrate@v4.18.3 create -ext sql -dir migrations $(name)
 
 # Seed
 
 seed:
 	cd backend && DATABASE_URL="$(DATABASE_URL)" go run ./cmd/seed
+
+# Keys
+
+generate-jwt-keys:
+	backend/scripts/generate-jwt-keys.sh
 
 # Builds
 
@@ -36,6 +42,11 @@ build-dashboard:
 build-desktop:
 	cd desktop && npm install && npm run build
 
+# Tests
+
+test-backend:
+	cd backend && go test ./...
+
 # Lint (placeholder until lint tools are configured)
 
 lint:
@@ -48,5 +59,6 @@ backend-run:
 
 dashboard-run:
 	cd dashboard && npm run dev
+
 desktop-run:
 	cd desktop && npm run dev

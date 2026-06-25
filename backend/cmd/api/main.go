@@ -11,14 +11,26 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	authsvc "github.com/thoriqzs/PARKIR/backend/internal/auth"
 	"github.com/thoriqzs/PARKIR/backend/internal/config"
 	"github.com/thoriqzs/PARKIR/backend/internal/db"
+	authdomain "github.com/thoriqzs/PARKIR/backend/internal/domain/auth"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/health"
+	"github.com/thoriqzs/PARKIR/backend/internal/domain/locations"
+	"github.com/thoriqzs/PARKIR/backend/internal/domain/rates"
+	"github.com/thoriqzs/PARKIR/backend/internal/domain/roles"
+	"github.com/thoriqzs/PARKIR/backend/internal/domain/users"
 	"github.com/thoriqzs/PARKIR/backend/internal/logger"
 	"github.com/thoriqzs/PARKIR/backend/internal/middleware"
+	"github.com/thoriqzs/PARKIR/backend/internal/permissions"
+	"github.com/thoriqzs/PARKIR/backend/internal/store"
 )
 
 func main() {
+	_ = godotenv.Load(".env")
+	_ = godotenv.Load("backend/.env")
+
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to load config: %v\n", err)
@@ -43,12 +55,34 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
+	authService, err := authsvc.NewService(cfg.JWTPrivateKeyPath, cfg.JWTPublicKeyPath)
+	if err != nil {
+		log.Error("failed to initialize auth service", "error", err)
+		os.Exit(1)
+	}
+
+	store := store.New(pool)
+	permResolver := permissions.NewResolver(pool)
+
 	router := gin.New()
 	router.Use(middleware.RequestLogger(log))
 	router.Use(middleware.Recovery(log))
 	router.Use(middleware.CORS(cfg))
 
 	health.RegisterRoutes(router)
+
+	authHandler := authdomain.NewHandler(authService, store)
+	authHandler.RegisterRoutes(router)
+
+	api := router.Group("/api/v1")
+	api.Use(middleware.Auth(authService, permResolver))
+	{
+	users.NewHandler(store).RegisterRoutes(api)
+	roles.NewHandler(store).RegisterRoutes(api)
+
+	locations.NewHandler(store).RegisterRoutes(api)
+	rates.NewHandler(store).RegisterRoutes(api.Group("/locations"), api.Group("/rates"))
+	}
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.Port),

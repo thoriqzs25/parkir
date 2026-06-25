@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
-	"golang.org/x/crypto/bcrypt"
+	authsvc "github.com/thoriqzs/PARKIR/backend/internal/auth"
 )
 
 func main() {
@@ -90,12 +90,12 @@ func seed(ctx context.Context, pool *pgxpool.Pool) error {
 		return fmt.Errorf("find owner role: %w", err)
 	}
 
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte("owner123"), bcrypt.DefaultCost)
+	passwordHash, err := authsvc.HashPassword("owner123")
 	if err != nil {
 		return fmt.Errorf("hash password: %w", err)
 	}
 
-	pinHash, err := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
+	pinHash, err := authsvc.HashPIN("123456")
 	if err != nil {
 		return fmt.Errorf("hash pin: %w", err)
 	}
@@ -107,7 +107,7 @@ func seed(ctx context.Context, pool *pgxpool.Pool) error {
 			password_hash = EXCLUDED.password_hash,
 			pin_hash = EXCLUDED.pin_hash,
 			role_id = EXCLUDED.role_id
-	`, string(passwordHash), string(pinHash), ownerRoleID)
+	`, passwordHash, pinHash, ownerRoleID)
 	if err != nil {
 		return fmt.Errorf("insert owner user: %w", err)
 	}
