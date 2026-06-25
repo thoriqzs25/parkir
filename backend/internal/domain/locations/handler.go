@@ -85,14 +85,17 @@ func (h *Handler) Create(c *gin.Context) {
 }
 
 func (h *Handler) List(c *gin.Context) {
-	locations, err := h.store.ListLocations(c.Request.Context())
+	locations, total, err := h.store.ListLocations(c.Request.Context())
 	if err != nil {
 		_ = c.Error(err)
 		response.InternalServerError(c)
 		return
 	}
 
-	response.OK(c, locations)
+	response.OK(c, gin.H{
+		"items": locations,
+		"meta":  response.Meta{Limit: total, Offset: 0, Total: total},
+	})
 }
 
 func (h *Handler) Get(c *gin.Context) {

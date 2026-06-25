@@ -72,14 +72,14 @@ func (s *Store) GetLocationByID(ctx context.Context, id string) (*Location, erro
 	return &loc, nil
 }
 
-func (s *Store) ListLocations(ctx context.Context) ([]Location, error) {
+func (s *Store) ListLocations(ctx context.Context) ([]Location, int, error) {
 	rows, err := s.pool.Query(ctx, `
 		SELECT id, name, code, address, city, status, capacity, created_at, updated_at
 		FROM locations
 		ORDER BY created_at DESC
 	`)
 	if err != nil {
-		return nil, fmt.Errorf("list locations: %w", err)
+		return nil, 0, fmt.Errorf("list locations: %w", err)
 	}
 	defer rows.Close()
 
@@ -89,12 +89,21 @@ func (s *Store) ListLocations(ctx context.Context) ([]Location, error) {
 		if err := rows.Scan(
 			&loc.ID, &loc.Name, &loc.Code, &loc.Address, &loc.City, &loc.Status, &loc.Capacity, &loc.CreatedAt, &loc.UpdatedAt,
 		); err != nil {
-			return nil, fmt.Errorf("scan location: %w", err)
+			return nil, 0, fmt.Errorf("scan location: %w", err)
 		}
 		locations = append(locations, loc)
 	}
 
-	return locations, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	var total int
+	if err := s.pool.QueryRow(ctx, `SELECT COUNT(*) FROM locations`).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count locations: %w", err)
+	}
+
+	return locations, total, nil
 }
 
 func (s *Store) UpdateLocation(ctx context.Context, id string, input UpdateLocationInput) (*Location, error) {

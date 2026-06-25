@@ -148,6 +148,47 @@ After logging in, the dashboard defaults to the user's first assigned location. 
 - **Users** — create, edit, deactivate, reset password/PIN, assign locations.
 - **Roles** — create, edit, soft-delete with permission allow-list.
 
+## Desktop App
+
+The operator desktop app is an Electron + React + TypeScript client.
+
+### Development
+
+1. Install dependencies:
+   ```bash
+   cd desktop
+   npm install
+   ```
+
+2. Run the desktop app in development mode:
+   ```bash
+   make desktop-run
+   # or from the desktop directory:
+   npm run dev
+   ```
+
+3. The backend must be running at `http://localhost:8080`.
+
+### Operator Flow
+
+1. **Login** with email/password.
+2. **Select Location** and start a shift.
+3. From the **Main Menu**, choose:
+   - **Check In** — register plate, vehicle type, and city code.
+   - **Check Out** — search active sessions by plate, then calculate the fee.
+   - **Payment** — record cash (with change) or digital payment.
+   - **Success** — print receipt with system print dialog and reprint later.
+   - **History** — list closed/voided sessions for the current shift.
+4. **End Shift** from the dashboard to reconcile cash.
+
+### Authentication
+
+The desktop app authenticates via Bearer token (`Authorization: Bearer <token>`) stored in-memory in the Electron main process. The backend's auth middleware now also accepts this header when the `access_token` cookie is absent, so the same backend serves both dashboard (cookie) and desktop (token) clients.
+
+### Minimum Target Resolution
+
+1024×768.
+
 ## Local Development Notes
 
 - Backend runs on `http://localhost:8080`.

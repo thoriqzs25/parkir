@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"encoding/json"
@@ -211,9 +212,14 @@ func (s *Store) ListSessions(ctx context.Context, filters ListSessionsFilters, l
 		argIdx++
 	}
 	if filters.State != "" {
-		where += fmt.Sprintf(" AND state = $%d", argIdx)
-		args = append(args, filters.State)
-		argIdx++
+		states := strings.Split(filters.State, ",")
+		placeholders := make([]string, len(states))
+		for i := range states {
+			placeholders[i] = fmt.Sprintf("$%d", argIdx)
+			args = append(args, states[i])
+			argIdx++
+		}
+		where += fmt.Sprintf(" AND state IN (%s)", strings.Join(placeholders, ", "))
 	}
 	if filters.Plate != "" {
 		where += fmt.Sprintf(" AND plate ILIKE $%d", argIdx)

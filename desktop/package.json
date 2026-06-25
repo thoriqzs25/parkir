@@ -9,14 +9,15 @@
   "scripts": {
     "dev": "npm run build && electron .",
     "build": "tsc && npm run copy-renderer",
-    "copy-renderer": "cp src/renderer/index.html dist/renderer/index.html",
+    "copy-renderer": "mkdir -p dist/renderer && cp src/renderer/index.html dist/renderer/index.html && cp src/renderer/App.css dist/renderer/App.css",
     "lint": "echo 'lint not configured yet'",
     "start": "electron ."
   },
   "dependencies": {
     "electron": "^31.0.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.24.0"
   },
   "devDependencies": {
     "@types/node": "^20",

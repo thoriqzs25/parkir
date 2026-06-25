@@ -37,6 +37,7 @@ func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 	shifts.Use(middleware.RequirePermission("shifts:view"))
 	{
 		shifts.GET("", h.List)
+		shifts.GET("/me/open", h.GetMyOpen)
 		shifts.GET("/:id", h.Get)
 	}
 
@@ -57,6 +58,22 @@ func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 	{
 		shiftsWithForceClose.POST("/:id/force-close", h.ForceClose)
 	}
+}
+
+func (h *Handler) GetMyOpen(c *gin.Context) {
+	operatorID := middleware.GetUserID(c)
+	shift, err := h.store.GetOpenShiftForOperator(c.Request.Context(), operatorID)
+	if err != nil {
+		if err == errors.ErrNotFound {
+			response.NotFound(c, "no open shift")
+			return
+		}
+		_ = c.Error(err)
+		response.InternalServerError(c)
+		return
+	}
+
+	response.OK(c, shift)
 }
 
 func (h *Handler) Start(c *gin.Context) {

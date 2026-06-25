@@ -22,16 +22,25 @@ const (
 
 func Auth(authService *auth.Service, permResolver *permissions.Resolver) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		tokenString := ""
+
 		cookie, err := c.Cookie("access_token")
-		if err != nil {
+		if err == nil && cookie != "" {
+			tokenString = cookie
+			if strings.HasPrefix(tokenString, "Bearer ") {
+				tokenString = strings.TrimPrefix(tokenString, "Bearer ")
+			}
+		} else {
+			authHeader := c.GetHeader("Authorization")
+			if strings.HasPrefix(authHeader, "Bearer ") {
+				tokenString = strings.TrimPrefix(authHeader, "Bearer ")
+			}
+		}
+
+		if tokenString == "" {
 			response.Unauthorized(c, "missing access token")
 			c.Abort()
 			return
-		}
-
-		tokenString := cookie
-		if strings.HasPrefix(cookie, "Bearer ") {
-			tokenString = strings.TrimPrefix(cookie, "Bearer ")
 		}
 
 		claims, err := authService.ValidateToken(tokenString)
