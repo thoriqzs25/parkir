@@ -18,7 +18,7 @@ type User struct {
 	Status       string     `json:"status"`
 	LocationIDs  []string   `json:"location_ids,omitempty"`
 	PasswordHash string     `json:"-"`
-	PINHash      string     `json:"-"`
+	PINHash      *string    `json:"-"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
 }
@@ -79,12 +79,12 @@ func (s *Store) CreateUser(ctx context.Context, input CreateUserInput) (*User, e
 func (s *Store) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	var user User
 	err := s.pool.QueryRow(ctx, `
-		SELECT u.id, u.name, u.email, u.password_hash, u.pin_hash, u.role_id, r.name as role_name, u.status
+		SELECT u.id, u.name, u.email, u.password_hash, u.role_id, r.name as role_name, u.status
 		FROM users u
 		JOIN roles r ON r.id = u.role_id
 		WHERE u.email = $1 AND u.status = 'ACTIVE'
 	`, email).Scan(
-		&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.PINHash,
+		&user.ID, &user.Name, &user.Email, &user.PasswordHash,
 		&user.RoleID, &user.RoleName, &user.Status,
 	)
 	if err != nil {

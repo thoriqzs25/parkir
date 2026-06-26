@@ -252,10 +252,10 @@ func (h *Handler) validateManagerPIN(ctx context.Context, userID, pin string) er
 	if err != nil {
 		return err
 	}
-	if user.PINHash == "" {
+	if user.PINHash == nil || *user.PINHash == "" {
 		return errors.ErrForbidden
 	}
-	if !authsvc.CheckPIN(pin, user.PINHash) {
+	if !authsvc.CheckPIN(pin, *user.PINHash) {
 		return errors.ErrForbidden
 	}
 	return nil
