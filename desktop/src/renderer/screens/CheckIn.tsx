@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { checkIn } from "../lib/api";
+import { saveOfflineCheckIn, type LocalSession } from "../lib/offlineStore";
 import { useAuth } from "../contexts/AuthContext";
+import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import type { Session } from "../types";
 
 const VEHICLE_TYPES: Array<"CAR" | "MOTO" | "TRUCK"> = ["CAR", "MOTO", "TRUCK"];
@@ -12,6 +14,7 @@ function formatWIB(date: string) {
 
 export function CheckIn() {
   const { currentLocation, openShift } = useAuth();
+  const online = useOnlineStatus();
   const navigate = useNavigate();
   const [vehicleType, setVehicleType] = useState<"CAR" | "MOTO" | "TRUCK">("CAR");
   const [plate, setPlate] = useState("");
@@ -26,14 +29,53 @@ export function CheckIn() {
 
     setLoading(true);
     setError(null);
+
+    const normalizedPlate = plate.toUpperCase().trim();
+    const normalizedCity = cityCode.toUpperCase().trim();
+    const now = new Date().toISOString();
+
     try {
-      const res = await checkIn({
-        location_id: currentLocation.id,
-        plate: plate.toUpperCase(),
-        city_code: cityCode.toUpperCase(),
-        vehicle_type: vehicleType,
-      });
-      setLastSession(res.session);
+      if (online) {
+        const res = await checkIn({
+          location_id: currentLocation.id,
+          plate: normalizedPlate,
+          city_code: normalizedCity,
+          vehicle_type: vehicleType,
+        });
+        setLastSession(res.session);
+      } else {
+        const sessionId = crypto.randomUUID();
+        const localSession: LocalSession = {
+          id: sessionId,
+          location_id: currentLocation.id,
+          operator_id: openShift.operator_id,
+          shift_id: openShift.id,
+          plate: normalizedPlate,
+          city_code: normalizedCity || "UNKNOWN",
+          vehicle_type: vehicleType,
+          state: "ACTIVE",
+          check_in_at: now,
+          offline_sync: true,
+          sync_conflict: false,
+          pendingSync: true,
+          created_at: now,
+          updated_at: now,
+        };
+        saveOfflineCheckIn(localSession, {
+          type: "check_in",
+          session: {
+            id: sessionId,
+            location_id: currentLocation.id,
+            operator_id: openShift.operator_id,
+            shift_id: openShift.id,
+            plate: normalizedPlate,
+            city_code: normalizedCity || "UNKNOWN",
+            vehicle_type: vehicleType,
+            check_in_at: now,
+          },
+        });
+        setLastSession(localSession);
+      }
       setPlate("");
     } catch (err) {
       setError((err as Error).message);
@@ -53,7 +95,7 @@ export function CheckIn() {
         <p style="margin: 8px 0; font-size: 16px;"><strong>Type:</strong> ${lastSession.vehicle_type}</p>
         <p style="margin: 8px 0; font-size: 14px;"><strong>Time:</strong> ${formatWIB(lastSession.check_in_at)}</p>
         <hr />
-        <p style="font-size: 12px; color: #666;">Keep this ticket</p>
+        <p style="font-size: 12px; color: #666;">${online ? "" : "OFFLINE - Keep this ticket"}</p>
       </div>
     `;
     window.electronAPI.printHtml(html).catch(() => {
@@ -70,7 +112,7 @@ export function CheckIn() {
       <button className="button secondary back" onClick={() => navigate("/dashboard")}>
         &larr; Back
       </button>
-      <h2>Check In</h2>
+      <h2>Check In {!online && <span className="offline-badge">OFFLINE</span>}</h2>
       <div className="card">
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -111,7 +153,7 @@ export function CheckIn() {
           </div>
           {error && <p className="error-message">{error}</p>}
           <button className="button primary full" type="submit" disabled={loading}>
-            {loading ? "Processing..." : "Check In"}
+            {loading ? "Processing..." : online ? "Check In" : "Queue Check In"}
           </button>
         </form>
       </div>

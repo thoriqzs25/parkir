@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import type { Location, Shift, User } from "../types";
 import * as api from "../lib/api";
+import { getRateCache, setRateCache } from "../lib/offlineStore";
 
 interface AuthContextValue {
   user: User | null;
@@ -61,6 +62,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     restore().catch(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!currentLocation || !navigator.onLine) return;
+
+    const cache = getRateCache();
+    const cacheTTL = 24 * 60 * 60 * 1000;
+    if (cache && cache.locationId === currentLocation.id && new Date(cache.fetchedAt).getTime() > Date.now() - cacheTTL) {
+      return;
+    }
+
+    api.listRates(currentLocation.id)
+      .then((rates) => {
+        setRateCache({
+          locationId: currentLocation.id,
+          rates,
+          fetchedAt: new Date().toISOString(),
+        });
+      })
+      .catch(() => {
+        // Silently use stale cache if the request fails.
+      });
+  }, [currentLocation]);
 
   const login = async (email: string, password: string) => {
     setLoading(true);

@@ -1,4 +1,4 @@
-import type { Location, MeResponse, Session, Shift, Transaction, User } from "../types";
+import type { Location, MeResponse, Rate, Session, Shift, Transaction, User } from "../types";
 
 const API_BASE_URL = "http://localhost:8080/api/v1";
 
@@ -27,7 +27,7 @@ async function getStoredToken(): Promise<string | null> {
   return bearerToken;
 }
 
-async function request<T>(
+export async function request<T>(
   method: string,
   path: string,
   body?: unknown
@@ -214,4 +214,8 @@ export async function listTransactions(filters: ListTransactionsFilters): Promis
   if (filters.offset !== undefined) params.set("offset", String(filters.offset));
   const query = params.toString();
   return request<{ items: Transaction[]; meta?: { total: number } }>("GET", `/transactions?${query}`);
+}
+
+export function listRates(locationId: string): Promise<Rate[]> {
+  return request<Rate[]>("GET", `/locations/${locationId}/rates`);
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { MemoryRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { Layout } from "./components/Layout";
@@ -11,12 +11,70 @@ import { Payment } from "./screens/Payment";
 import { Success } from "./screens/Success";
 import { History } from "./screens/History";
 import { useOnlineStatus } from "./hooks/useOnlineStatus";
+import { getPendingItems } from "./lib/offlineStore";
+import { syncPendingItems } from "./lib/sync";
 import "./App.css";
 
 function NetworkStatus() {
   const isOnline = useOnlineStatus();
-  if (isOnline) return null;
-  return <div className="network-status">Offline — online features may not work</div>;
+  const pendingCount = getPendingItems().length;
+  if (isOnline) {
+    if (pendingCount > 0) {
+      return (
+        <div className="network-status sync-pending">Online — {pendingCount} records waiting to sync</div>
+      );
+    }
+    return null;
+  }
+  return <div className="network-status">Offline — {pendingCount} records queued locally</div>;
+}
+
+function SyncManager() {
+  const isOnline = useOnlineStatus();
+  const { currentLocation } = useAuth();
+  const [syncing, setSyncing] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOnline) return;
+
+    const pendingCount = getPendingItems().length;
+    if (pendingCount === 0) return;
+
+    setSyncing(true);
+    syncPendingItems()
+      .then(({ reprints }) => {
+        if (reprints.length > 0 && currentLocation) {
+          reprints.forEach(({ receiptNumber, plate, fee }) => {
+            const html = `
+              <div style="padding: 24px; max-width: 320px; margin: 0 auto; text-align: center;">
+                <h2 style="margin: 0 0 8px;">${currentLocation.name}</h2>
+                <p style="margin: 0 0 16px;">${receiptNumber}</p>
+                <hr />
+                <p style="margin: 8px 0; font-size: 16px;"><strong>Plate:</strong> ${plate}</p>
+                <p style="margin: 8px 0; font-size: 18px;"><strong>Total: Rp ${fee.toLocaleString("id-ID")}</strong></p>
+                <hr />
+                <p style="font-size: 12px; color: #666;">Official receipt issued after sync</p>
+              </div>
+            `;
+            window.electronAPI.printHtml(html).catch(() => {
+              // eslint-disable-next-line no-alert
+              alert(`Official receipt for ${plate}: ${receiptNumber}`);
+            });
+          });
+        }
+        setLastError(null);
+      })
+      .catch((err) => {
+        setLastError(err instanceof Error ? err.message : "Sync failed");
+      })
+      .finally(() => setSyncing(false));
+  }, [isOnline, currentLocation]);
+
+  if (!isOnline) return null;
+  if (syncing) return <div className="network-status sync-active">Syncing offline records...</div>;
+  if (lastError) return <div className="network-status sync-error">Sync error: {lastError}</div>;
+  return null;
 }
 
 function RequireUser({ children }: { children: React.ReactNode }) {
@@ -116,6 +174,7 @@ export function App() {
     <AuthProvider>
       <MemoryRouter>
         <NetworkStatus />
+        <SyncManager />
         <AppRoutes />
       </MemoryRouter>
     </AuthProvider>

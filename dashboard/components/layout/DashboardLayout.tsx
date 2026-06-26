@@ -12,6 +12,7 @@ import {
   Receipt,
   Clock,
   LogOut,
+  AlertTriangle,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,6 +31,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { href: `/${locationId}/sessions/active`, label: "Active Sessions", icon: Car, perm: "sessions:view" },
     { href: `/${locationId}/sessions/history`, label: "History", icon: Clock, perm: "sessions:view" },
     { href: `/${locationId}/transactions`, label: "Transactions", icon: Receipt, perm: "sessions:view" },
+    { href: `/${locationId}/sync-conflicts`, label: "Sync Conflicts", icon: AlertTriangle, perm: "sessions:view" },
     { href: `/${locationId}/shifts`, label: "Shifts", icon: Clock, perm: "shifts:view" },
     { href: `/${locationId}/locations`, label: "Locations", icon: MapPin, perm: "locations:view" },
     { href: `/${locationId}/rates`, label: "Rates", icon: Banknote, perm: "rates:view" },

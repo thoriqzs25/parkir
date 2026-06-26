@@ -276,3 +276,21 @@ export function getShift(id: string, include?: "transactions") {
     summary?: { transaction_count: number; expected_cash: number };
   }>(`/api/v1/shifts/${id}${qs}`);
 }
+
+// Sync conflicts
+export function listSyncConflicts(params?: Record<string, string>) {
+  const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+  return apiRequest<PaginatedItems<Session>>(`/api/v1/sync/conflicts${qs}`);
+}
+
+export interface ResolveSyncConflictInput {
+  action: "VOID_OFFLINE" | "IGNORE";
+  void_reason?: string;
+}
+
+export function resolveSyncConflict(id: string, input: ResolveSyncConflictInput) {
+  return apiRequest<Session>(`/api/v1/sync/conflicts/${id}/resolve`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}

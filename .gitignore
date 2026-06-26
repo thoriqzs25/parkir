@@ -1,6 +1,7 @@
 # Go
 backend/bin/
 backend/tmp/
+backend/api
 backend/vendor/
 backend/*.exe
 backend/*.dll
