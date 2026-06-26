@@ -39,13 +39,17 @@ type MeResponse struct {
 	Permissions []string    `json:"permissions"`
 }
 
-func (h *Handler) RegisterRoutes(r *gin.Engine) {
+func (h *Handler) RegisterPublicRoutes(r *gin.RouterGroup) {
 	authGroup := r.Group("/auth")
 	{
 		authGroup.POST("/login", h.Login)
 		authGroup.POST("/logout", h.Logout)
 		authGroup.POST("/refresh", h.Refresh)
 	}
+}
+
+func (h *Handler) RegisterProtectedRoutes(r *gin.RouterGroup) {
+	r.GET("/auth/me", h.Me)
 }
 
 func (h *Handler) Login(c *gin.Context) {

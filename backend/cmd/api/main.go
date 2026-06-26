@@ -75,12 +75,18 @@ func main() {
 	health.RegisterRoutes(router, pool)
 
 	authHandler := authdomain.NewHandler(authService, store)
-	authHandler.RegisterRoutes(router)
 
+	// Public API routes (no auth required)
+	public := router.Group("/api/v1")
+	{
+		authHandler.RegisterPublicRoutes(public)
+	}
+
+	// Protected API routes (auth required)
 	api := router.Group("/api/v1")
 	api.Use(middleware.Auth(authService, permResolver))
 	{
-		api.GET("/auth/me", authHandler.Me)
+		authHandler.RegisterProtectedRoutes(api)
 
 		users.NewHandler(store).RegisterRoutes(api)
 		roles.NewHandler(store).RegisterRoutes(api)
