@@ -55,7 +55,7 @@ services:
     volumes:
       - ./dashboard:/app
       - node_modules_dashboard:/app/node_modules
-    command: ["npm", "run", "dev"]
+    command: ["sh", "-c", "npm install && npm run dev"]
 
 volumes:
   postgres_data:

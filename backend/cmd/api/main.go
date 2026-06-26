@@ -72,7 +72,7 @@ func main() {
 	router.Use(middleware.Recovery(log))
 	router.Use(middleware.CORS(cfg))
 
-	health.RegisterRoutes(router)
+	health.RegisterRoutes(router, pool)
 
 	authHandler := authdomain.NewHandler(authService, store)
 	authHandler.RegisterRoutes(router)
