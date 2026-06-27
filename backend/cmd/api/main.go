@@ -23,6 +23,7 @@ import (
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/incidents"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/locations"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/rates"
+	"github.com/thoriqzs/PARKIR/backend/internal/domain/reports"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/roles"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/sessions"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/shifts"
@@ -121,6 +122,7 @@ func main() {
 		adjustments.NewHandler(store).RegisterRoutes(api)
 		auditlogs.NewHandler(store).RegisterRoutes(api)
 		alertdomain.NewHandler(store).RegisterRoutes(api)
+		reports.NewHandler(store).RegisterRoutes(api)
 	}
 
 	alertCtx, alertCancel := context.WithCancel(context.Background())

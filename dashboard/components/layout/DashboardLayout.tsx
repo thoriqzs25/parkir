@@ -17,6 +17,7 @@ import {
   ScrollText,
   Activity,
   Bell,
+  BarChart3,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useAuth } from "@/hooks/useAuth";
@@ -41,6 +42,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { href: `/${locationId}/audit-logs`, label: "Audit Logs", icon: ScrollText, perm: "observability:view_audit" },
     { href: `/${locationId}/health`, label: "Health", icon: Activity, perm: "observability:view_health" },
     { href: `/${locationId}/alerts`, label: "Alerts", icon: Bell, perm: "observability:view_alerts" },
+    { href: `/${locationId}/reports`, label: "Reports", icon: BarChart3, perm: "reports:view_revenue" },
     { href: `/${locationId}/locations`, label: "Locations", icon: MapPin, perm: "locations:view" },
     { href: `/${locationId}/rates`, label: "Rates", icon: Banknote, perm: "rates:view" },
     { href: `/${locationId}/users`, label: "Users", icon: Users, perm: "users:view" },

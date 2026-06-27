@@ -10,6 +10,7 @@ import { CreateUserInput, UpdateUserInput, User } from "@/types/user";
 import { Incident, CreateIncidentInput, ResolveIncidentInput, AddNoteInput, IncidentNote } from "@/types/incident";
 import { AuditLog } from "@/types/auditlog";
 import { Alert, AlertConfig, HealthComponents } from "@/types/alert";
+import { DailyRevenueRow, OccupancyRow, VehicleBreakdownRow, OperatorActivityRow } from "@/types/report";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -407,4 +408,46 @@ export function updateAlertConfig(id: string, input: { enabled?: boolean; thresh
     method: "PATCH",
     body: JSON.stringify(input),
   });
+}
+
+// Reports
+function reportURL(path: string, params?: Record<string, string>): string {
+  const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+  return `/api/v1/reports/${path}${qs}`;
+}
+
+export function getDailyRevenue(params?: Record<string, string>) {
+  return apiRequest<DailyRevenueRow[]>(reportURL("daily-revenue", params));
+}
+
+export function getDailyRevenueCSVUrl(params?: Record<string, string>): string {
+  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+  return `${base}${reportURL("daily-revenue", { ...params, format: "csv" })}`;
+}
+
+export function getOccupancy(params?: Record<string, string>) {
+  return apiRequest<OccupancyRow[]>(reportURL("occupancy", params));
+}
+
+export function getOccupancyCSVUrl(params?: Record<string, string>): string {
+  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+  return `${base}${reportURL("occupancy", { ...params, format: "csv" })}`;
+}
+
+export function getVehicleBreakdown(params?: Record<string, string>) {
+  return apiRequest<VehicleBreakdownRow[]>(reportURL("vehicle-breakdown", params));
+}
+
+export function getVehicleBreakdownCSVUrl(params?: Record<string, string>): string {
+  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+  return `${base}${reportURL("vehicle-breakdown", { ...params, format: "csv" })}`;
+}
+
+export function getOperatorActivity(params?: Record<string, string>) {
+  return apiRequest<OperatorActivityRow[]>(reportURL("operator-activity", params));
+}
+
+export function getOperatorActivityCSVUrl(params?: Record<string, string>): string {
+  const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+  return `${base}${reportURL("operator-activity", { ...params, format: "csv" })}`;
 }
