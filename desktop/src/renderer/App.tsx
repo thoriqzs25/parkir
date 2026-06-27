@@ -10,6 +10,7 @@ import { CheckOut } from "./screens/CheckOut";
 import { Payment } from "./screens/Payment";
 import { Success } from "./screens/Success";
 import { History } from "./screens/History";
+import { IncidentReport } from "./screens/IncidentReport";
 import { useOnlineStatus } from "./hooks/useOnlineStatus";
 import { getPendingItems } from "./lib/offlineStore";
 import { syncPendingItems } from "./lib/sync";
@@ -160,6 +161,14 @@ function AppRoutes() {
           element={
             <RequireShift>
               <History />
+            </RequireShift>
+          }
+        />
+        <Route
+          path="/incident"
+          element={
+            <RequireShift>
+              <IncidentReport />
             </RequireShift>
           }
         />

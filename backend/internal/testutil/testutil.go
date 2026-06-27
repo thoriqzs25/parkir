@@ -55,6 +55,10 @@ func NewTestDB(t *testing.T) *TestDB {
 	reset := func() {
 		ctx := context.Background()
 		tables := []string{
+			"alert_configs",
+			"alerts",
+			"incident_notes",
+			"incidents",
 			"audit_logs",
 			"transactions",
 			"sessions",

@@ -13,6 +13,10 @@ import {
   Clock,
   LogOut,
   AlertTriangle,
+  AlertCircle,
+  ScrollText,
+  Activity,
+  Bell,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,6 +37,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { href: `/${locationId}/transactions`, label: "Transactions", icon: Receipt, perm: "sessions:view" },
     { href: `/${locationId}/sync-conflicts`, label: "Sync Conflicts", icon: AlertTriangle, perm: "sessions:view" },
     { href: `/${locationId}/shifts`, label: "Shifts", icon: Clock, perm: "shifts:view" },
+    { href: `/${locationId}/incidents`, label: "Incidents", icon: AlertCircle, perm: "incidents:view" },
+    { href: `/${locationId}/audit-logs`, label: "Audit Logs", icon: ScrollText, perm: "observability:view_audit" },
+    { href: `/${locationId}/health`, label: "Health", icon: Activity, perm: "observability:view_health" },
+    { href: `/${locationId}/alerts`, label: "Alerts", icon: Bell, perm: "observability:view_alerts" },
     { href: `/${locationId}/locations`, label: "Locations", icon: MapPin, perm: "locations:view" },
     { href: `/${locationId}/rates`, label: "Rates", icon: Banknote, perm: "rates:view" },
     { href: `/${locationId}/users`, label: "Users", icon: Users, perm: "users:view" },

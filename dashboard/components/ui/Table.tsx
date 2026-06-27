@@ -20,14 +20,14 @@ export function Tbody({ children }: { children: ReactNode }) {
   return <tbody className="divide-y divide-gray-200 bg-white">{children}</tbody>;
 }
 
-export function Th({ children }: { children: ReactNode }) {
+export function Th({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+    <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 ${className}`}>
       {children}
     </th>
   );
 }
 
-export function Td({ children }: { children: ReactNode }) {
-  return <td className="px-4 py-3 text-sm text-gray-900">{children}</td>;
+export function Td({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <td className={`px-4 py-3 text-sm text-gray-900 ${className}`}>{children}</td>;
 }

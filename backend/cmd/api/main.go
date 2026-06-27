@@ -16,7 +16,11 @@ import (
 	"github.com/thoriqzs/PARKIR/backend/internal/config"
 	"github.com/thoriqzs/PARKIR/backend/internal/db"
 	authdomain "github.com/thoriqzs/PARKIR/backend/internal/domain/auth"
+	"github.com/thoriqzs/PARKIR/backend/internal/domain/adjustments"
+	alertdomain "github.com/thoriqzs/PARKIR/backend/internal/domain/alerts"
+	"github.com/thoriqzs/PARKIR/backend/internal/domain/auditlogs"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/health"
+	"github.com/thoriqzs/PARKIR/backend/internal/domain/incidents"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/locations"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/rates"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/roles"
@@ -27,6 +31,7 @@ import (
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/users"
 	"github.com/thoriqzs/PARKIR/backend/internal/logger"
 	"github.com/thoriqzs/PARKIR/backend/internal/middleware"
+	"github.com/thoriqzs/PARKIR/backend/internal/notifier"
 	"github.com/thoriqzs/PARKIR/backend/internal/permissions"
 	"github.com/thoriqzs/PARKIR/backend/internal/store"
 )
@@ -68,12 +73,24 @@ func main() {
 	store := store.New(pool)
 	permResolver := permissions.NewResolver(pool)
 
+	notifierCfg := notifier.Config{
+		SMTPHost:     cfg.SMTPHost,
+		SMTPPort:     cfg.SMTPPort,
+		SMTPUser:     cfg.SMTPUser,
+		SMTPPassword: cfg.SMTPPassword,
+		FromAddress:  cfg.SMTPFromAddress,
+		ToAddresses:  cfg.AlertEmailRecipients,
+	}
+	emailNotifier := notifier.New(notifierCfg)
+	alertEngine := alertdomain.NewEngine(store, emailNotifier)
+
 	router := gin.New()
 	router.Use(middleware.RequestLogger(log))
 	router.Use(middleware.Recovery(log))
 	router.Use(middleware.CORS(cfg))
 
 	health.RegisterRoutes(router, pool)
+	health.RegisterComponentRoutes(router, pool)
 
 	authHandler := authdomain.NewHandler(authService, store)
 
@@ -99,7 +116,16 @@ func main() {
 		transactions.NewHandler(store).RegisterRoutes(api)
 		shifts.NewHandler(store).RegisterRoutes(api)
 		sync.NewHandler(store).RegisterRoutes(api)
+
+		incidents.NewHandler(store).RegisterRoutes(api)
+		adjustments.NewHandler(store).RegisterRoutes(api)
+		auditlogs.NewHandler(store).RegisterRoutes(api)
+		alertdomain.NewHandler(store).RegisterRoutes(api)
 	}
+
+	alertCtx, alertCancel := context.WithCancel(context.Background())
+	defer alertCancel()
+	go alertEngine.Start(alertCtx, 5*time.Minute)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.Port),

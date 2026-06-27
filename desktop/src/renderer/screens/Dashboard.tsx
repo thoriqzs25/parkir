@@ -60,6 +60,10 @@ export function Dashboard() {
           <h3>History</h3>
           <p>View closed sessions</p>
         </button>
+        <button className="menu-card" onClick={() => navigate("/incident")}>
+          <h3>Report Incident</h3>
+          <p>File an operational issue</p>
+        </button>
       </div>
     </div>
   );

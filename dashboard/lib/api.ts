@@ -7,6 +7,9 @@ import { Session } from "@/types/session";
 import { Shift } from "@/types/shift";
 import { Transaction, VoidTransactionInput } from "@/types/transaction";
 import { CreateUserInput, UpdateUserInput, User } from "@/types/user";
+import { Incident, CreateIncidentInput, ResolveIncidentInput, AddNoteInput, IncidentNote } from "@/types/incident";
+import { AuditLog } from "@/types/auditlog";
+import { Alert, AlertConfig, HealthComponents } from "@/types/alert";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -291,6 +294,117 @@ export interface ResolveSyncConflictInput {
 export function resolveSyncConflict(id: string, input: ResolveSyncConflictInput) {
   return apiRequest<Session>(`/api/v1/sync/conflicts/${id}/resolve`, {
     method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// Health
+export function getHealthComponents() {
+  return apiRequest<HealthComponents>("/health/components", { cache: "no-store" });
+}
+
+// Incidents
+export function listIncidents(params?: Record<string, string>) {
+  const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+  return apiRequest<PaginatedItems<Incident>>(`/api/v1/incidents${qs}`);
+}
+
+export function getIncident(id: string) {
+  return apiRequest<Incident>(`/api/v1/incidents/${id}`);
+}
+
+export function createIncident(input: CreateIncidentInput) {
+  return apiRequest<Incident>("/api/v1/incidents", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function resolveIncident(id: string, input: ResolveIncidentInput) {
+  return apiRequest<Incident>(`/api/v1/incidents/${id}/resolve`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export function getIncidentNotes(id: string) {
+  return apiRequest<IncidentNote[]>(`/api/v1/incidents/${id}/notes`);
+}
+
+export function createIncidentNote(id: string, input: AddNoteInput) {
+  return apiRequest<IncidentNote>(`/api/v1/incidents/${id}/notes`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// Adjustments
+export interface VoidTransactionAdjustmentInput {
+  transaction_id: string;
+  reason: string;
+  manager_pin: string;
+}
+
+export interface ReassignSessionInput {
+  session_id: string;
+  new_operator_id: string;
+  new_shift_id: string;
+  manager_pin: string;
+}
+
+export function voidTransactionAdjustment(input: VoidTransactionAdjustmentInput) {
+  return apiRequest<Transaction>("/api/v1/adjustments/void-transaction", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function reassignSession(input: ReassignSessionInput) {
+  return apiRequest<Session>("/api/v1/adjustments/reassign-session", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+// Audit Logs
+export function listAuditLogs(params?: Record<string, string>) {
+  const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+  return apiRequest<PaginatedItems<AuditLog>>(`/api/v1/audit-logs${qs}`);
+}
+
+export function exportAuditLogs(params?: Record<string, string>) {
+  const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+  return `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/api/v1/audit-logs/export${qs}`;
+}
+
+// Alerts
+export function listAlerts(params?: Record<string, string>) {
+  const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+  return apiRequest<PaginatedItems<Alert>>(`/api/v1/alerts${qs}`);
+}
+
+export function getAlert(id: string) {
+  return apiRequest<Alert>(`/api/v1/alerts/${id}`);
+}
+
+export function acknowledgeAlert(id: string) {
+  return apiRequest<Alert>(`/api/v1/alerts/${id}/acknowledge`, { method: "POST" });
+}
+
+export function resolveAlert(id: string, resolutionNotes: string) {
+  return apiRequest<Alert>(`/api/v1/alerts/${id}/resolve`, {
+    method: "POST",
+    body: JSON.stringify({ resolution_notes: resolutionNotes }),
+  });
+}
+
+export function listAlertConfigs(locationId: string) {
+  return apiRequest<AlertConfig[]>(`/api/v1/alert-configs?location_id=${locationId}`);
+}
+
+export function updateAlertConfig(id: string, input: { enabled?: boolean; threshold?: Record<string, unknown> }) {
+  return apiRequest<AlertConfig>(`/api/v1/alert-configs/${id}`, {
+    method: "PATCH",
     body: JSON.stringify(input),
   });
 }
