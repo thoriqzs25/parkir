@@ -14,7 +14,6 @@ import { IncidentReport } from "./screens/IncidentReport";
 import { useOnlineStatus } from "./hooks/useOnlineStatus";
 import { getPendingItems } from "./lib/offlineStore";
 import { syncPendingItems } from "./lib/sync";
-import "./App.css";
 
 function NetworkStatus() {
   const isOnline = useOnlineStatus();

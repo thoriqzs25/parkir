@@ -19,6 +19,12 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, "renderer", "index.html"));
 
+  mainWindow.webContents.on("before-input-event", (_event, input) => {
+    if (input.key === "F12") {
+      mainWindow?.webContents.toggleDevTools();
+    }
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });

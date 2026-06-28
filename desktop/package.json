@@ -8,8 +8,9 @@
   },
   "scripts": {
     "dev": "npm run build && electron .",
-    "build": "tsc && npm run copy-renderer",
-    "copy-renderer": "mkdir -p dist/renderer && cp src/renderer/index.html dist/renderer/index.html && cp src/renderer/App.css dist/renderer/App.css",
+    "build": "tsc --project tsconfig.main.json && npm run build-renderer && npm run copy-renderer",
+    "build-renderer": "esbuild src/renderer/index.tsx --bundle --outfile=dist/renderer/renderer.js --minify --platform=browser --external:electron",
+    "copy-renderer": "cp src/renderer/index.html dist/renderer/index.html && cp src/renderer/App.css dist/renderer/App.css",
     "lint": "echo 'lint not configured yet'",
     "start": "electron ."
   },
@@ -23,6 +24,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "esbuild": "^0.28.1",
     "typescript": "^5"
   }
 }
