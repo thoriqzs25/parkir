@@ -113,5 +113,14 @@ func seed(ctx context.Context, pool *pgxpool.Pool) error {
 		return fmt.Errorf("insert owner user: %w", err)
 	}
 
+	_, err = pool.Exec(ctx, `
+		INSERT INTO locations (name, code, address, city)
+		VALUES ('Main Location', 'MAIN', '123 Main St', 'Jakarta')
+		ON CONFLICT (code) DO NOTHING
+	`)
+	if err != nil {
+		return fmt.Errorf("insert default location: %w", err)
+	}
+
 	return nil
 }

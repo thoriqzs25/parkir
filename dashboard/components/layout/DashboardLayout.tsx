@@ -31,7 +31,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { locations, currentLocation, setCurrentLocation } = useLocation();
   const pathname = usePathname();
   const params = useParams();
-  const locationId = (params.locationId as string) || currentLocation?.id || "";
+  const locationId = (params.locationId as string) || currentLocation?.id;
 
   const nav = [
     { href: `/${locationId}/sessions/active`, label: "Active Sessions", icon: Car, perm: "sessions:view" },
@@ -80,27 +80,33 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="p-4 space-y-1">
-          {nav
-            .filter((item) => hasPermission(permissions, item.perm))
-            .map((item) => {
-              const active = pathname.startsWith(item.href);
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={clsx(
-                    "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                    active
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-gray-700 hover:bg-gray-100"
-                  )}
-                >
-                  <Icon className="mr-3 h-4 w-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
+          {locationId ? (
+            nav
+              .filter((item) => hasPermission(permissions, item.perm))
+              .map((item) => {
+                const active = pathname.startsWith(item.href);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={clsx(
+                      "flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      active
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-700 hover:bg-gray-100"
+                    )}
+                  >
+                    <Icon className="mr-3 h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              })
+          ) : (
+            <p className="text-sm text-gray-400 px-3 py-2">
+              No location available. Contact an admin to set up a location.
+            </p>
+          )}
         </nav>
       </aside>
 
