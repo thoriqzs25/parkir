@@ -1,4 +1,4 @@
-.PHONY: dev stop build lint test-backend migrate-up migrate-down migrate-create seed generate-jwt-keys backend-run dashboard-run desktop-run
+.PHONY: dev stop build lint test-backend migrate-up migrate-down migrate-create seed generate-jwt-keys backend-run dashboard-run desktop-run db-docker db-docker-shell db-local
 
 # Development
 
@@ -51,6 +51,20 @@ test-backend:
 
 lint:
 	@echo "Lint tools not configured yet. Skipping."
+
+# Database helpers
+
+DOCKER_DB_URL = postgres://postgres:postgres@localhost:5432/parkir?sslmode=disable
+LOCAL_DB_URL ?= postgres://postgres:postgres@localhost:5432/parkir?sslmode=disable
+
+db-docker:
+	psql "$(DOCKER_DB_URL)"
+
+db-docker-shell:
+	docker exec -it parkir-postgres psql -U postgres -d parkir
+
+db-local:
+	psql "$(LOCAL_DB_URL)"
 
 # Local non-Docker development helpers
 
