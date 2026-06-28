@@ -19,6 +19,7 @@ import (
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/adjustments"
 	alertdomain "github.com/thoriqzs/PARKIR/backend/internal/domain/alerts"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/auditlogs"
+	backupdomain "github.com/thoriqzs/PARKIR/backend/internal/domain/backups"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/health"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/incidents"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/locations"
@@ -85,6 +86,8 @@ func main() {
 	emailNotifier := notifier.New(notifierCfg)
 	alertEngine := alertdomain.NewEngine(store, emailNotifier)
 
+	backupScheduler := backupdomain.NewScheduler(cfg.BackupDir, cfg.DatabaseURL)
+
 	router := gin.New()
 	router.Use(middleware.RequestLogger(log))
 	router.Use(middleware.Recovery(log))
@@ -123,11 +126,40 @@ func main() {
 		auditlogs.NewHandler(store).RegisterRoutes(api)
 		alertdomain.NewHandler(store).RegisterRoutes(api)
 		reports.NewHandler(store).RegisterRoutes(api)
+		backupdomain.NewHandler(backupScheduler).RegisterRoutes(api)
 	}
 
 	alertCtx, alertCancel := context.WithCancel(context.Background())
 	defer alertCancel()
 	go alertEngine.Start(alertCtx, 5*time.Minute)
+
+	backupCtx, backupCancel := context.WithCancel(context.Background())
+	defer backupCancel()
+	go func() {
+		ticker := time.NewTicker(24 * time.Hour)
+		defer ticker.Stop()
+
+		// Run initial backup 1 minute after startup
+		firstBackup := time.NewTimer(1 * time.Minute)
+		defer firstBackup.Stop()
+
+		for {
+			select {
+			case <-backupCtx.Done():
+				return
+			case <-firstBackup.C:
+				log.Info("running initial scheduled backup")
+				if err := backupScheduler.RunBackup(context.Background()); err != nil {
+					log.Error("initial backup failed", "error", err)
+				}
+			case <-ticker.C:
+				log.Info("running scheduled daily backup")
+				if err := backupScheduler.RunBackup(context.Background()); err != nil {
+					log.Error("scheduled backup failed", "error", err)
+				}
+			}
+		}
+	}()
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%s", cfg.Port),

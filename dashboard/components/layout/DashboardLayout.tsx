@@ -18,6 +18,7 @@ import {
   Activity,
   Bell,
   BarChart3,
+  Database,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useAuth } from "@/hooks/useAuth";
@@ -47,6 +48,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { href: `/${locationId}/rates`, label: "Rates", icon: Banknote, perm: "rates:view" },
     { href: `/${locationId}/users`, label: "Users", icon: Users, perm: "users:view" },
     { href: `/${locationId}/roles`, label: "Roles", icon: Shield, perm: "users:view" },
+    { href: `/${locationId}/backups`, label: "Backups", icon: Database, perm: "observability:view_health" },
   ];
 
   return (

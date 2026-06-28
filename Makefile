@@ -62,3 +62,18 @@ dashboard-run:
 
 desktop-run:
 	cd desktop && npm run dev
+
+# Deployment
+
+deploy-prod:
+	@echo "=== Production Deploy ==="
+	docker compose -f docker-compose.prod.yml build --no-cache backend
+	docker compose -f docker-compose.prod.yml build dashboard
+	docker compose -f docker-compose.prod.yml up -d
+	@echo "=== Done ==="
+
+deploy-staging:
+	@echo "=== Staging Deploy ==="
+	docker compose -f docker-compose.staging.yml build
+	docker compose -f docker-compose.staging.yml up -d
+	@echo "=== Done ==="

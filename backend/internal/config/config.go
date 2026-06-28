@@ -24,6 +24,7 @@ type Config struct {
 	SMTPPassword        string
 	SMTPFromAddress     string
 	AlertEmailRecipients []string
+	BackupDir           string
 }
 
 func Load() (*Config, error) {
@@ -45,6 +46,7 @@ func Load() (*Config, error) {
 		SMTPPassword:         getEnv("SMTP_PASSWORD", ""),
 		SMTPFromAddress:      getEnv("SMTP_FROM_ADDRESS", ""),
 		AlertEmailRecipients: splitEnv(getEnv("ALERT_EMAIL_RECIPIENTS", "")),
+		BackupDir:            getEnv("BACKUP_DIR", "/var/backups/parkir"),
 	}
 
 	if cfg.Environment == "production" {

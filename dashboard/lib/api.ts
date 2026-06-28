@@ -451,3 +451,29 @@ export function getOperatorActivityCSVUrl(params?: Record<string, string>): stri
   const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
   return `${base}${reportURL("operator-activity", { ...params, format: "csv" })}`;
 }
+
+// Backups
+export interface BackupFile {
+  filename: string;
+  size_bytes: number;
+  created_at: string;
+  status: string;
+  error?: string;
+}
+
+export interface BackupListResponse {
+  items: BackupFile[];
+  status: string;
+  last_run_at?: string;
+  last_status?: string;
+}
+
+export function listBackups() {
+  return apiRequest<BackupListResponse>("/api/v1/backups", { cache: "no-store" });
+}
+
+export function triggerBackup() {
+  return apiRequest<BackupListResponse>("/api/v1/backups/run", {
+    method: "POST",
+  });
+}
