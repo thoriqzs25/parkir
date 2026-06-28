@@ -62,7 +62,7 @@ async function request<T>(
 
 async function refreshToken(): Promise<boolean> {
   try {
-    await request<{ token: string }>("/auth/refresh", { method: "POST" });
+    await request<{ token: string }>("/api/v1/auth/refresh", { method: "POST" });
     return true;
   } catch {
     return false;
@@ -93,14 +93,14 @@ export function getHealth() {
 
 // Auth
 export function login(input: LoginInput) {
-  return apiRequest<{ user: User; token: string }>("/auth/login", {
+  return apiRequest<{ user: User; token: string }>("/api/v1/auth/login", {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function logout() {
-  return apiRequest<{ message: string }>("/auth/logout", { method: "POST" });
+  return apiRequest<{ message: string }>("/api/v1/auth/logout", { method: "POST" });
 }
 
 export function getMe() {
