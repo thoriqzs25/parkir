@@ -12,13 +12,17 @@ function formatWIB(date: string) {
   return new Date(date).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
 }
 
+function extractCityCode(plate: string): string {
+  const match = plate.match(/^[A-Z]+/);
+  return match ? match[0] : "UNKNOWN";
+}
+
 export function CheckIn() {
   const { currentLocation, openShift } = useAuth();
   const online = useOnlineStatus();
   const navigate = useNavigate();
   const [vehicleType, setVehicleType] = useState<"CAR" | "MOTO" | "TRUCK">("CAR");
   const [plate, setPlate] = useState("");
-  const [cityCode, setCityCode] = useState("B");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastSession, setLastSession] = useState<Session | null>(null);
@@ -30,8 +34,7 @@ export function CheckIn() {
     setLoading(true);
     setError(null);
 
-    const normalizedPlate = plate.toUpperCase().trim();
-    const normalizedCity = cityCode.toUpperCase().trim();
+    const normalizedPlate = plate.toUpperCase().trim().replace(/\s+/g, "");
     const now = new Date().toISOString();
 
     try {
@@ -39,7 +42,7 @@ export function CheckIn() {
         const res = await checkIn({
           location_id: currentLocation.id,
           plate: normalizedPlate,
-          city_code: normalizedCity,
+          city_code: extractCityCode(normalizedPlate),
           vehicle_type: vehicleType,
         });
         setLastSession(res.session);
@@ -51,7 +54,7 @@ export function CheckIn() {
           operator_id: openShift.operator_id,
           shift_id: openShift.id,
           plate: normalizedPlate,
-          city_code: normalizedCity || "UNKNOWN",
+          city_code: extractCityCode(normalizedPlate),
           vehicle_type: vehicleType,
           state: "ACTIVE",
           check_in_at: now,
@@ -69,7 +72,7 @@ export function CheckIn() {
             operator_id: openShift.operator_id,
             shift_id: openShift.id,
             plate: normalizedPlate,
-            city_code: normalizedCity || "UNKNOWN",
+            city_code: extractCityCode(normalizedPlate),
             vehicle_type: vehicleType,
             check_in_at: now,
           },
@@ -130,26 +133,15 @@ export function CheckIn() {
               ))}
             </div>
           </div>
-          <div className="form-row">
-            <div className="form-group" style={{ flex: 0.3 }}>
-              <label>City</label>
-              <input
-                value={cityCode}
-                onChange={(e) => setCityCode(e.target.value)}
-                maxLength={3}
-                required
-              />
-            </div>
-            <div className="form-group" style={{ flex: 1 }}>
-              <label>Plate Number</label>
-              <input
-                value={plate}
-                onChange={(e) => setPlate(e.target.value.toUpperCase())}
-                placeholder="B1234XYZ"
-                required
-                autoFocus
-              />
-            </div>
+          <div className="form-group">
+            <label>Plate Number</label>
+            <input
+              value={plate}
+              onChange={(e) => setPlate(e.target.value.toUpperCase())}
+              placeholder="B1234XYZ"
+              required
+              autoFocus
+            />
           </div>
           {error && <p className="error-message">{error}</p>}
           <button className="button primary full" type="submit" disabled={loading}>

@@ -1,10 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { EndShiftDialog } from "../components/EndShiftDialog";
 
 export function Dashboard() {
   const { user, currentLocation, openShift, loading, endShift } = useAuth();
   const navigate = useNavigate();
+  const [showEndShift, setShowEndShift] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -17,14 +19,12 @@ export function Dashboard() {
     }
   }, [user, currentLocation, openShift, navigate]);
 
-  const handleEndShift = async () => {
-    const amount = window.prompt("Enter cash handover amount:", "0");
-    if (amount === null) return;
-    const notes = window.prompt("Discrepancy notes (optional):");
+  const handleEndShift = async (amount: number, notes?: string) => {
+    setShowEndShift(false);
     try {
-      await endShift(Number(amount), notes || undefined);
+      await endShift(amount, notes);
       navigate("/locations");
-    } catch (err) {
+    } catch {
       alert("Failed to end shift.");
     }
   };
@@ -43,7 +43,7 @@ export function Dashboard() {
         <p>
           <strong>Location:</strong> {currentLocation.name} ({currentLocation.code})
         </p>
-        <button className="button danger" onClick={handleEndShift}>
+        <button className="button danger" onClick={() => setShowEndShift(true)}>
           End Shift
         </button>
       </div>
@@ -65,6 +65,11 @@ export function Dashboard() {
           <p>File an operational issue</p>
         </button>
       </div>
+      <EndShiftDialog
+        open={showEndShift}
+        onConfirm={handleEndShift}
+        onCancel={() => setShowEndShift(false)}
+      />
     </div>
   );
 }
