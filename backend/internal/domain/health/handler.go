@@ -7,15 +7,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/thoriqzs/PARKIR/backend/internal/response"
 )
 
 var startTime = time.Now()
 
 func RegisterRoutes(r *gin.Engine, pool *pgxpool.Pool) {
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status": "ok",
-		})
+		response.OK(c, gin.H{"status": "ok"})
 	})
 
 	r.GET("/health/ready", func(c *gin.Context) {
@@ -50,11 +49,11 @@ func RegisterComponentRoutes(r *gin.Engine, pool *pgxpool.Pool) {
 			dbStatus = "disconnected"
 		}
 
-		c.JSON(http.StatusOK, gin.H{
+		response.OK(c, gin.H{
 			"status": "ok",
 			"components": gin.H{
 				"api": gin.H{
-					"status": "up",
+					"status":        "up",
 					"uptime_seconds": int(time.Since(startTime).Seconds()),
 				},
 				"database": gin.H{

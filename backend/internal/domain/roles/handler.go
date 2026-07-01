@@ -81,7 +81,10 @@ func (h *Handler) List(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, roles)
+	response.OK(c, gin.H{
+		"items": roles,
+		"meta":  response.Meta{Limit: len(roles), Offset: 0, Total: len(roles)},
+	})
 }
 
 func (h *Handler) Get(c *gin.Context) {

@@ -112,9 +112,9 @@ func (h *Handler) List(c *gin.Context) {
 		return
 	}
 
-	response.OK(c, response.Response{
-		Data: users,
-		Meta: response.Meta{Limit: limit, Offset: offset, Total: total},
+	response.OK(c, gin.H{
+		"items": users,
+		"meta":  response.Meta{Limit: limit, Offset: offset, Total: total},
 	})
 }
 

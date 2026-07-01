@@ -75,13 +75,11 @@ func (h *Handler) List(c *gin.Context) {
 
 	response.OK(c, gin.H{
 		"items": alerts,
-		"meta": response.Response{
-			Data: map[string]interface{}{
-				"limit":           limit,
-				"offset":          offset,
-				"total":           total,
-				"triggered_count": triggeredCount,
-			},
+		"meta": gin.H{
+			"limit":           limit,
+			"offset":          offset,
+			"total":           total,
+			"triggered_count": triggeredCount,
 		},
 	})
 }
