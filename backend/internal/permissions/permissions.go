@@ -220,19 +220,32 @@ func (r *Resolver) EffectivePermissions(ctx context.Context, userID string, loca
 		return sortedPermissions(set), nil
 	}
 
-	// 1. Role permissions if role applies at this location
-	queryRole := `
-		SELECT r.permissions
-		FROM users u
-		JOIN roles r ON r.id = u.role_id
-		JOIN user_role_locations url ON url.user_id = u.id
-		WHERE u.id = $1
-		  AND r.deleted_at IS NULL
-		  AND url.location_id = $2
-	`
-
+	// 1. Role permissions
 	var rolePerms []string
-	err = r.pool.QueryRow(ctx, queryRole, userID, locationID).Scan(&rolePerms)
+	if locationID != nil {
+		// When a specific location is given, scope to that location.
+		err = r.pool.QueryRow(ctx, `
+			SELECT r.permissions
+			FROM users u
+			JOIN roles r ON r.id = u.role_id
+			JOIN user_role_locations url ON url.user_id = u.id
+			WHERE u.id = $1
+			  AND r.deleted_at IS NULL
+			  AND url.location_id = $2
+		`, userID, locationID).Scan(&rolePerms)
+	} else {
+		// Without a location context, return role permissions (the user must
+		// be assigned to at least one location for the role to be active).
+		err = r.pool.QueryRow(ctx, `
+			SELECT r.permissions
+			FROM users u
+			JOIN roles r ON r.id = u.role_id
+			JOIN user_role_locations url ON url.user_id = u.id
+			WHERE u.id = $1
+			  AND r.deleted_at IS NULL
+			LIMIT 1
+		`, userID).Scan(&rolePerms)
+	}
 	if err != nil && err != pgx.ErrNoRows {
 		return nil, fmt.Errorf("query role permissions: %w", err)
 	}

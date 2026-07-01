@@ -4,14 +4,15 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: parkir-postgres
+    restart: always
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: parkir
     ports:
       - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+    tmpfs:
+      - /var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -58,6 +59,5 @@ services:
     command: ["sh", "-c", "npm install && npm run dev"]
 
 volumes:
-  postgres_data:
   go_mod_cache:
   node_modules_dashboard:

@@ -70,6 +70,7 @@ func seed(ctx context.Context, pool *pgxpool.Pool) error {
 				"sessions:view", "sessions:create", "sessions:close",
 				"payments:collect_cash", "payments:collect_digital",
 				"incidents:create", "shifts:start", "shifts:end",
+				"locations:view",
 			},
 		},
 	}
@@ -120,6 +121,27 @@ func seed(ctx context.Context, pool *pgxpool.Pool) error {
 	`)
 	if err != nil {
 		return fmt.Errorf("insert default location: %w", err)
+	}
+
+	var locationID string
+	err = pool.QueryRow(ctx, `SELECT id FROM locations WHERE code = 'MAIN'`).Scan(&locationID)
+	if err != nil {
+		return fmt.Errorf("find main location: %w", err)
+	}
+
+	var userID string
+	err = pool.QueryRow(ctx, `SELECT id FROM users WHERE email = 'owner@parkir.local'`).Scan(&userID)
+	if err != nil {
+		return fmt.Errorf("find owner user: %w", err)
+	}
+
+	_, err = pool.Exec(ctx, `
+		INSERT INTO user_role_locations (user_id, location_id)
+		VALUES ($1, $2)
+		ON CONFLICT DO NOTHING
+	`, userID, locationID)
+	if err != nil {
+		return fmt.Errorf("assign owner to main location: %w", err)
 	}
 
 	return nil

@@ -36,6 +36,10 @@ PARKIR/
 # Start full dev stack (Postgres 5432, backend 8080, dashboard 3000)
 make dev
 
+# Run backend locally with hot reload (air), connecting to local postgresql@18
+cd backend && air -c .air.toml
+# (Set DATABASE_URL, MIGRATIONS_PATH, JWT_PRIVATE_KEY_PATH, JWT_PUBLIC_KEY_PATH as needed)
+
 # Stop the dev stack
 make stop
 
