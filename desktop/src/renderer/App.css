@@ -261,6 +261,32 @@ body {
   gap: 16px;
 }
 
+.location-card.selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.location-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  justify-content: center;
+}
+
+.menu-card.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.menu-card.disabled:hover {
+  box-shadow: none;
+}
+
+.no-shift-message {
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
 .shift-info {
   display: flex;
   align-items: center;

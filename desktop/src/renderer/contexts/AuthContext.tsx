@@ -151,7 +151,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       discrepancy_notes: notes,
     });
     setOpenShift(null);
-    setCurrentLocation(null);
   };
 
   return (

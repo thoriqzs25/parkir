@@ -94,6 +94,14 @@ function RequireShift({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RequireLocation({ children }: { children: React.ReactNode }) {
+  const { currentLocation } = useAuth();
+  if (!currentLocation) {
+    return <Navigate to="/locations" replace />;
+  }
+  return <>{children}</>;
+}
+
 function AuthenticatedLayout() {
   return (
     <RequireUser>
@@ -118,9 +126,9 @@ function AppRoutes() {
         <Route
           path="/dashboard"
           element={
-            <RequireShift>
+            <RequireLocation>
               <Dashboard />
-            </RequireShift>
+            </RequireLocation>
           }
         />
         <Route
@@ -158,9 +166,9 @@ function AppRoutes() {
         <Route
           path="/history"
           element={
-            <RequireShift>
+            <RequireLocation>
               <History />
-            </RequireShift>
+            </RequireLocation>
           }
         />
         <Route

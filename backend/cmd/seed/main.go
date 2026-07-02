@@ -144,5 +144,27 @@ func seed(ctx context.Context, pool *pgxpool.Pool) error {
 		return fmt.Errorf("assign owner to main location: %w", err)
 	}
 
+	rates := []struct {
+		vehicleType         string
+		firstHourRate       float64
+		subsequentHourlyRate float64
+		dailyFlatRate       float64
+	}{
+		{vehicleType: "CAR", firstHourRate: 5000, subsequentHourlyRate: 3000, dailyFlatRate: 50000},
+		{vehicleType: "MOTO", firstHourRate: 2000, subsequentHourlyRate: 1000, dailyFlatRate: 15000},
+		{vehicleType: "TRUCK", firstHourRate: 10000, subsequentHourlyRate: 5000, dailyFlatRate: 100000},
+	}
+
+	for _, r := range rates {
+		_, err = pool.Exec(ctx, `
+			INSERT INTO location_rates (location_id, vehicle_type, first_hour_rate, subsequent_hourly_rate, daily_flat_rate, effective_from)
+			VALUES ($1, $2, $3, $4, $5, CURRENT_DATE)
+			ON CONFLICT (location_id, vehicle_type, effective_from) DO NOTHING
+		`, locationID, r.vehicleType, r.firstHourRate, r.subsequentHourlyRate, r.dailyFlatRate)
+		if err != nil {
+			return fmt.Errorf("insert rate for %s: %w", r.vehicleType, err)
+		}
+	}
+
 	return nil
 }
