@@ -474,56 +474,61 @@ Sequence resets daily per location. Use a per-location daily sequence table with
 
 ---
 
-### Milestone 1 — Backend Core Entities (Weeks 2–4)
+### Milestone 1 — Backend Core Entities (Weeks 2–4) ✅ COMPLETE
 **Focus:** Build the data layer and auth/RBAC foundation. Do not build business logic yet.
 
-- [ ] Database migrations for `locations`, `location_rates`, `roles`, `users`, `user_role_locations`, `user_permission_grants`
-- [ ] Repository pattern with raw SQL/pgx
-- [ ] Password hashing (bcrypt) and PIN hashing (bcrypt)
-- [ ] JWT login/refresh/logout
-- [ ] RBAC permission resolution (`getPermissions(user, location)`)
-- [ ] Auth middleware: validate JWT + extract user + permissions
-- [ ] CRUD endpoints: users, roles, locations, rates
-- [ ] Seed script with default roles (`operator`, `manager`, `admin`, `owner`) and a root owner
+- [x] Database migrations for `locations`, `location_rates`, `roles`, `users`, `user_role_locations`, `user_permission_grants`
+- [x] Repository pattern with raw SQL/pgx
+- [x] Password hashing (bcrypt) and PIN hashing (bcrypt)
+- [x] JWT login/refresh/logout
+- [x] RBAC permission resolution (`getPermissions(user, location)`)
+- [x] Auth middleware: validate JWT + extract user + permissions
+- [x] CRUD endpoints: users, roles, locations, rates
+- [x] Seed script with default roles (`operator`, `manager`, `admin`, `owner`) and a root owner
+- [x] Audit log writes for mutations
 
-**Definition of done:** Dashboard can log in; API endpoints for users/roles/locations/rates pass integration tests; RBAC middleware blocks unauthorized requests.
+**Definition of done:** API endpoints for users/roles/locations/rates manually tested; RBAC middleware blocks unauthorized requests; README documents endpoints.
 
 ---
 
-### Milestone 2 — Backend Business Logic (Weeks 5–7)
+### Milestone 2 — Backend Business Logic (Weeks 5–7) ✅ COMPLETE
 **Focus:** Core parking operations — sessions, payments, receipts, shifts.
 
-- [ ] `sessions` table migration
-- [ ] Check-in endpoint with plate normalization and duplicate active plate warning
-- [ ] Check-out endpoint with fee calculation engine
-- [ ] `transactions` table migration
-- [ ] Cash payment recording + change calculation
-- [ ] Digital (mock) payment recording
-- [ ] Receipt number sequence generation (per location/day, race-safe)
-- [ ] `shifts` table migration + start/end shift endpoints
-- [ ] Shift cash handover + discrepancy calculation
-- [ ] Cross-shift attribution: `sessions.shift_id` (check-in) vs `transactions.shift_id` (payment)
-- [ ] Audit log writes for session, transaction, and shift events
+- [x] `sessions` table migration
+- [x] Check-in endpoint with plate normalization and duplicate active plate warning
+- [x] Check-out endpoint with fee calculation engine
+- [x] `transactions` table migration
+- [x] Cash payment recording + change calculation
+- [x] Digital (mock) payment recording
+- [x] Receipt number sequence generation (per location/day, race-safe)
+- [x] `shifts` table migration + start/end shift endpoints
+- [x] Shift cash handover + discrepancy calculation
+- [x] Cross-shift attribution: `sessions.shift_id` (check-in) vs `transactions.shift_id` (payment)
+- [x] Audit log writes for session, transaction, and shift events
+- [x] Integration test scaffolding and CI
 
-**Definition of done:** Full check-in → check-out → payment → receipt flow works via API; shift discrepancy is calculated correctly.
+**Definition of done:** Full check-in → check-out → payment → receipt flow works via API; shift discrepancy is calculated correctly; integration tests pass.
 
 ---
 
-### Milestone 3 — Web Dashboard Foundation (Weeks 6–8)
+### Milestone 3 — Web Dashboard Foundation (Weeks 6–8) ✅ COMPLETE
 **Focus:** Manager-facing management and operational pages. Starts in parallel with Milestone 2 once API contracts are stable.
 
-- [ ] Login page
-- [ ] Layout with navigation and location selector
-- [ ] Users management page (CRUD, role assignment, location assignment)
-- [ ] Roles & permissions page
-- [ ] Locations management page
-- [ ] Rates configuration page
-- [ ] Active sessions page
-- [ ] Session history page with filters
-- [ ] Transactions list page
-- [ ] Shifts list and detail page
+- [x] Login page
+- [x] Layout with navigation and location selector
+- [x] Users management page (CRUD, reset password/PIN, role assignment)
+- [x] Roles & permissions page
+- [x] Locations management page (assign/remove operators)
+- [x] Rates configuration page
+- [x] Active sessions page
+- [x] Session history page with filters
+- [x] Session detail page with linked transaction
+- [x] Transactions list page
+- [x] Shifts list page
+- [x] Shifts detail page with transactions and cash summary
+- [x] CI: backend tests, dashboard build, dashboard type-check
 
-**Definition of done:** Managers can configure the system and view sessions/transactions/shifts entirely through the dashboard.
+**Definition of done:** Managers can configure the system and view sessions/transactions/shifts entirely through the dashboard; backend integration tests pass; dashboard builds and type-checks successfully.
 
 ---
 

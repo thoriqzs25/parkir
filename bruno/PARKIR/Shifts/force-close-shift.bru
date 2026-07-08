@@ -1,0 +1,16 @@
+meta {
+  name: Force Close Shift
+  type: http
+  seq: 42
+}
+
+post {
+  url: {{apiV1}}/shifts/{{shiftId}}/force-close
+  body: json
+  auth: none
+}
+body:json {
+{
+  "reason": "operator left without closing"
+}
+}

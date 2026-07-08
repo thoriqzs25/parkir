@@ -1,0 +1,50 @@
+# Go
+backend/bin/
+backend/tmp/
+backend/api
+backend/vendor/
+backend/*.exe
+backend/*.dll
+backend/*.so
+backend/*.dylib
+*.test
+*.out
+coverage.html
+coverage.out
+
+# Node / Next.js / Electron
+dashboard/node_modules/
+dashboard/.next/
+dashboard/out/
+dashboard/build/
+dashboard/tsconfig.tsbuildinfo
+dashboard/npm-debug.log*
+dashboard/yarn-debug.log*
+dashboard/yarn-error.log*
+dashboard/.pnpm-debug.log*
+desktop/node_modules/
+desktop/dist/
+desktop/npm-debug.log*
+desktop/yarn-debug.log*
+desktop/yarn-error.log*
+desktop/.pnpm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+backend/.env
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+postgres_data/
+
+# Logs
+*.log

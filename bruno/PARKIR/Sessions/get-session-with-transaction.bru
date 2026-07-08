@@ -1,0 +1,11 @@
+meta {
+  name: Get Session With Transaction
+  type: http
+  seq: 30
+}
+
+get {
+  url: {{apiV1}}/sessions/{{sessionId}}?include=transaction
+  body: none
+  auth: none
+}

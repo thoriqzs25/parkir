@@ -1,0 +1,30 @@
+{
+  "name": "parkir-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/main.js",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "npm run build && electron .",
+    "build": "tsc --project tsconfig.main.json && npm run build-renderer && npm run copy-renderer",
+    "build-renderer": "esbuild src/renderer/index.tsx --bundle --outfile=dist/renderer/renderer.js --minify --platform=browser --external:electron",
+    "copy-renderer": "cp src/renderer/index.html dist/renderer/index.html && cp src/renderer/App.css dist/renderer/App.css",
+    "lint": "echo 'lint not configured yet'",
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^31.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "esbuild": "^0.28.1",
+    "typescript": "^5"
+  }
+}

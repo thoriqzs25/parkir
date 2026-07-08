@@ -1,0 +1,11 @@
+meta {
+  name: Get Shift With Transactions
+  type: http
+  seq: 40
+}
+
+get {
+  url: {{apiV1}}/shifts/{{shiftId}}?include=transactions
+  body: none
+  auth: none
+}

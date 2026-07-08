@@ -1,0 +1,17 @@
+meta {
+  name: Record Cash Payment
+  type: http
+  seq: 32
+}
+
+post {
+  url: {{apiV1}}/payments/cash
+  body: json
+  auth: none
+}
+body:json {
+{
+  "session_id": "{{sessionId}}",
+  "amount_tendered": 20000
+}
+}

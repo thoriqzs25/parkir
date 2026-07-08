@@ -1,0 +1,16 @@
+meta {
+  name: Update Location
+  type: http
+  seq: 20
+}
+
+patch {
+  url: {{apiV1}}/locations/{{locationId}}
+  body: json
+  auth: none
+}
+body:json {
+{
+  "name": "Mall Kelapa Gading Updated"
+}
+}

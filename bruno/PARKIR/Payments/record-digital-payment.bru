@@ -1,0 +1,16 @@
+meta {
+  name: Record Digital Payment
+  type: http
+  seq: 33
+}
+
+post {
+  url: {{apiV1}}/payments/digital
+  body: json
+  auth: none
+}
+body:json {
+{
+  "session_id": "{{sessionId}}"
+}
+}

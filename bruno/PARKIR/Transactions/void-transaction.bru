@@ -1,0 +1,17 @@
+meta {
+  name: Void Transaction
+  type: http
+  seq: 36
+}
+
+post {
+  url: {{apiV1}}/transactions/{{transactionId}}/void
+  body: json
+  auth: none
+}
+body:json {
+{
+  "pin": "123456",
+  "reason": "customer complaint"
+}
+}

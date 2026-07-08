@@ -1,0 +1,16 @@
+meta {
+  name: Assign Operator
+  type: http
+  seq: 22
+}
+
+post {
+  url: {{apiV1}}/locations/{{locationId}}/assign-operator
+  body: json
+  auth: none
+}
+body:json {
+{
+  "user_id": "{{userId}}"
+}
+}

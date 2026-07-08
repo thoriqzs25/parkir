@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS audit_logs CASCADE;
+DROP TABLE IF EXISTS user_permission_grants CASCADE;
+DROP TABLE IF EXISTS user_role_locations CASCADE;
+DROP TABLE IF EXISTS location_rates CASCADE;
+DROP TABLE IF EXISTS locations CASCADE;
+
+ALTER TABLE roles DROP COLUMN IF EXISTS deleted_at;

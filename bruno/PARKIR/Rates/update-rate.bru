@@ -1,0 +1,16 @@
+meta {
+  name: Update Rate
+  type: http
+  seq: 26
+}
+
+patch {
+  url: {{apiV1}}/rates/{{rateId}}
+  body: json
+  auth: none
+}
+body:json {
+{
+  "first_hour_rate": 6000
+}
+}

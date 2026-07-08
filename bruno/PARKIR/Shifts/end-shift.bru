@@ -1,0 +1,16 @@
+meta {
+  name: End Shift
+  type: http
+  seq: 41
+}
+
+post {
+  url: {{apiV1}}/shifts/{{shiftId}}/end
+  body: json
+  auth: none
+}
+body:json {
+{
+  "cash_handover_amount": 11000
+}
+}

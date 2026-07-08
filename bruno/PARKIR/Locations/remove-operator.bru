@@ -1,0 +1,16 @@
+meta {
+  name: Remove Operator
+  type: http
+  seq: 23
+}
+
+post {
+  url: {{apiV1}}/locations/{{locationId}}/remove-operator
+  body: json
+  auth: none
+}
+body:json {
+{
+  "user_id": "{{userId}}"
+}
+}
