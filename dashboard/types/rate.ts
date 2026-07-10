@@ -1,7 +1,7 @@
 export interface Rate {
   id: string;
   location_id: string;
-  vehicle_type: "CAR" | "MOTO" | "TRUCK";
+  vehicle_type: string;
   first_hour_rate: number;
   subsequent_hourly_rate: number;
   daily_flat_rate: number;
@@ -12,7 +12,7 @@ export interface Rate {
 }
 
 export interface CreateRateInput {
-  vehicle_type: "CAR" | "MOTO" | "TRUCK";
+  vehicle_type: string;
   first_hour_rate: number;
   subsequent_hourly_rate: number;
   daily_flat_rate: number;

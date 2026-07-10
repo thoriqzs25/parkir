@@ -131,7 +131,7 @@ export interface CheckInInput {
   location_id: string;
   plate: string;
   city_code: string;
-  vehicle_type: "CAR" | "MOTO" | "TRUCK";
+  vehicle_type: string;
 }
 
 export interface CheckInResponse {
@@ -218,4 +218,14 @@ export async function listTransactions(filters: ListTransactionsFilters): Promis
 
 export function listRates(locationId: string): Promise<Rate[]> {
   return request<Rate[]>("GET", `/locations/${locationId}/rates`);
+}
+
+export interface VehicleType {
+  name: string;
+  display_name: string;
+  description: string;
+}
+
+export function listVehicleTypes(): Promise<VehicleType[]> {
+  return request<VehicleType[]>("GET", "/vehicle-types");
 }

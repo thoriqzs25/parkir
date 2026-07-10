@@ -1,12 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { checkIn } from "../lib/api";
+import { checkIn, listVehicleTypes } from "../lib/api";
 import { saveOfflineCheckIn, type LocalSession } from "../lib/offlineStore";
 import { useAuth } from "../contexts/AuthContext";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import type { Session } from "../types";
-
-const VEHICLE_TYPES: Array<"CAR" | "MOTO" | "TRUCK"> = ["CAR", "MOTO", "TRUCK"];
 
 function formatWIB(date: string) {
   return new Date(date).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
@@ -21,11 +19,26 @@ export function CheckIn() {
   const { currentLocation, openShift } = useAuth();
   const online = useOnlineStatus();
   const navigate = useNavigate();
-  const [vehicleType, setVehicleType] = useState<"CAR" | "MOTO" | "TRUCK">("CAR");
+  const [vehicleType, setVehicleType] = useState<string>("CAR");
+  const [vehicleTypes, setVehicleTypes] = useState<string[]>([]);
   const [plate, setPlate] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastSession, setLastSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    listVehicleTypes()
+      .then((vts) => {
+        const names = vts.map((vt) => vt.name);
+        setVehicleTypes(names);
+        if (names.length > 0 && !names.includes(vehicleType)) {
+          setVehicleType(names[0]);
+        }
+      })
+      .catch(() => {
+        setVehicleTypes(["CAR", "MOTO", "TRUCK"]);
+      });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +134,7 @@ export function CheckIn() {
           <div className="form-group">
             <label>Vehicle Type</label>
             <div className="segmented-control">
-              {VEHICLE_TYPES.map((t) => (
+              {vehicleTypes.map((t) => (
                 <button
                   type="button"
                   key={t}

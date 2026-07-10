@@ -32,6 +32,7 @@ import (
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/sync"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/transactions"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/users"
+	"github.com/thoriqzs/PARKIR/backend/internal/domain/vehicletypes"
 	"github.com/thoriqzs/PARKIR/backend/internal/logger"
 	"github.com/thoriqzs/PARKIR/backend/internal/middleware"
 	"github.com/thoriqzs/PARKIR/backend/internal/notifier"
@@ -129,6 +130,8 @@ func main() {
 		alertdomain.NewHandler(store).RegisterRoutes(api)
 		reports.NewHandler(store).RegisterRoutes(api)
 		backupdomain.NewHandler(backupScheduler).RegisterRoutes(api)
+
+		vehicletypes.NewHandler(store).RegisterRoutes(api)
 	}
 
 	alertCtx, alertCancel := context.WithCancel(context.Background())

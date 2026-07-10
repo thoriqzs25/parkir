@@ -69,6 +69,12 @@ var ValidPermissions = map[string]bool{
 	"observability:view_alerts":  true,
 	"observability:manage_alerts": true,
 
+	// Vehicle Types
+	"vehicle-types:view":   true,
+	"vehicle-types:create": true,
+	"vehicle-types:edit":   true,
+	"vehicle-types:delete": true,
+
 	// Shifts
 	"shifts:start":               true,
 	"shifts:end":                 true,

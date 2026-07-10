@@ -15,4 +15,5 @@ var (
 	ErrInvalidState          = errors.New("invalid state")
 	ErrShiftLocationMismatch = errors.New("shift location mismatch")
 	ErrInsufficientPayment   = errors.New("insufficient payment")
+	ErrInUse                 = errors.New("resource in use")
 )

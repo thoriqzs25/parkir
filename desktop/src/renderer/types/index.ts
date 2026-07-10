@@ -51,7 +51,7 @@ export interface Session {
   shift_id?: string;
   plate: string;
   city_code: string;
-  vehicle_type: "CAR" | "MOTO" | "TRUCK";
+  vehicle_type: string;
   state: "ACTIVE" | "PENDING_PAYMENT" | "CLOSED" | "VOIDED";
   check_in_at: string;
   check_out_at?: string;
@@ -94,7 +94,7 @@ export interface Transaction {
 export interface Rate {
   id: string;
   location_id: string;
-  vehicle_type: "CAR" | "MOTO" | "TRUCK";
+  vehicle_type: string;
   first_hour_rate: number;
   subsequent_hourly_rate: number;
   daily_flat_rate: number;

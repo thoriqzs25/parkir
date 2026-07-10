@@ -11,6 +11,7 @@ import { Incident, CreateIncidentInput, ResolveIncidentInput, AddNoteInput, Inci
 import { AuditLog } from "@/types/auditlog";
 import { Alert, AlertConfig, HealthComponents } from "@/types/alert";
 import { DailyRevenueRow, OccupancyRow, VehicleBreakdownRow, OperatorActivityRow } from "@/types/report";
+import { VehicleType, CreateVehicleTypeInput, UpdateVehicleTypeInput } from "@/types/vehicle_type";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -475,5 +476,34 @@ export function listBackups() {
 export function triggerBackup() {
   return apiRequest<BackupListResponse>("/api/v1/backups/run", {
     method: "POST",
+  });
+}
+
+// Vehicle Types
+export function listVehicleTypes() {
+  return apiRequest<VehicleType[]>("/api/v1/vehicle-types", { cache: "no-store" });
+}
+
+export function getVehicleType(name: string) {
+  return apiRequest<VehicleType>(`/api/v1/vehicle-types/${encodeURIComponent(name)}`);
+}
+
+export function createVehicleType(input: CreateVehicleTypeInput) {
+  return apiRequest<VehicleType>("/api/v1/vehicle-types", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateVehicleType(name: string, input: UpdateVehicleTypeInput) {
+  return apiRequest<VehicleType>(`/api/v1/vehicle-types/${encodeURIComponent(name)}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteVehicleType(name: string) {
+  return apiRequest<void>(`/api/v1/vehicle-types/${encodeURIComponent(name)}`, {
+    method: "DELETE",
   });
 }

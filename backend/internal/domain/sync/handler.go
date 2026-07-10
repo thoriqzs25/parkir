@@ -53,7 +53,7 @@ type OfflineSessionData struct {
 	ShiftID     string    `json:"shift_id" binding:"required,uuid"`
 	Plate       string    `json:"plate" binding:"required"`
 	CityCode    string    `json:"city_code"`
-	VehicleType string    `json:"vehicle_type" binding:"required,oneof=CAR MOTO TRUCK"`
+	VehicleType string    `json:"vehicle_type" binding:"required"`
 	CheckInAt   time.Time `json:"check_in_at" binding:"required"`
 }
 
@@ -120,6 +120,13 @@ func (h *Handler) processItem(ctx context.Context, item SyncItem) SyncResult {
 			return result
 		}
 		data := item.Session
+
+		exists, err := h.store.ValidateVehicleTypeExists(ctx, data.VehicleType)
+		if err != nil || !exists {
+			result.Error = "unknown vehicle type"
+			return result
+		}
+
 		session, err := h.store.CreateOfflineSession(ctx, store.CreateOfflineSessionInput{
 			ID:          data.ID,
 			LocationID:  data.LocationID,

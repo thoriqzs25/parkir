@@ -26,12 +26,39 @@ func main() {
 	}
 	defer pool.Close()
 
+	if err := seedVehicleTypes(ctx, pool); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to seed vehicle types: %v\n", err)
+		os.Exit(1)
+	}
+
 	if err := seed(ctx, pool); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to seed database: %v\n", err)
 		os.Exit(1)
 	}
 
 	fmt.Println("seed completed successfully")
+}
+
+func seedVehicleTypes(ctx context.Context, pool *pgxpool.Pool) error {
+	for _, vt := range []struct {
+		name        string
+		displayName string
+		description string
+	}{
+		{name: "CAR", displayName: "Car", description: "Four-wheeled motor vehicle"},
+		{name: "MOTO", displayName: "Motorcycle", description: "Two-wheeled motor vehicle"},
+		{name: "TRUCK", displayName: "Truck", description: "Large cargo vehicle"},
+	} {
+		_, err := pool.Exec(ctx, `
+			INSERT INTO vehicle_types (name, display_name, description)
+			VALUES ($1, $2, $3)
+			ON CONFLICT (name) DO NOTHING
+		`, vt.name, vt.displayName, vt.description)
+		if err != nil {
+			return fmt.Errorf("seed vehicle type %s: %w", vt.name, err)
+		}
+	}
+	return nil
 }
 
 func seed(ctx context.Context, pool *pgxpool.Pool) error {
@@ -44,14 +71,15 @@ func seed(ctx context.Context, pool *pgxpool.Pool) error {
 			permissions: []string{
 				"sessions:*", "payments:*", "adjustments:*", "incidents:*",
 				"reports:*", "finance:*", "users:*", "locations:*", "rates:*",
-				"observability:*", "shifts:*",
+				"vehicle-types:*", "observability:*", "shifts:*",
 			},
 		},
 		{
 			name: "admin",
 			permissions: []string{
 				"sessions:*", "payments:*", "incidents:*", "reports:*",
-				"users:*", "locations:*", "rates:*", "observability:*", "shifts:*",
+				"users:*", "locations:*", "rates:*", "vehicle-types:*",
+				"observability:*", "shifts:*",
 			},
 		},
 		{

@@ -25,7 +25,7 @@ type CheckInRequest struct {
 	LocationID  string `json:"location_id" binding:"required,uuid"`
 	Plate       string `json:"plate" binding:"required"`
 	CityCode    string `json:"city_code"`
-	VehicleType string `json:"vehicle_type" binding:"required,oneof=CAR MOTO TRUCK"`
+	VehicleType string `json:"vehicle_type" binding:"required"`
 }
 
 type CheckOutRequest struct {
@@ -66,6 +66,12 @@ func (h *Handler) CheckIn(c *gin.Context) {
 	var req CheckInRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "INVALID_INPUT", err.Error())
+		return
+	}
+
+	exists, err := h.store.ValidateVehicleTypeExists(c.Request.Context(), req.VehicleType)
+	if err != nil || !exists {
+		response.BadRequest(c, "INVALID_VEHICLE_TYPE", "unknown vehicle type")
 		return
 	}
 

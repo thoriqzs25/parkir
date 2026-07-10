@@ -9,6 +9,7 @@ import {
   MapPin,
   Banknote,
   Car,
+  Truck,
   Receipt,
   Clock,
   LogOut,
@@ -48,6 +49,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { href: `/${locationId}/rates`, label: "Rates", icon: Banknote, perm: "rates:view" },
     { href: `/${locationId}/users`, label: "Users", icon: Users, perm: "users:view" },
     { href: `/${locationId}/roles`, label: "Roles", icon: Shield, perm: "users:view" },
+    { href: `/${locationId}/vehicle-types`, label: "Vehicle Types", icon: Truck, perm: "vehicle-types:view" },
     { href: `/${locationId}/backups`, label: "Backups", icon: Database, perm: "observability:view_health" },
   ];
 

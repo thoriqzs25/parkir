@@ -58,6 +58,12 @@ const ALL_PERMISSIONS = [
   "observability:view_audit",
   "observability:view_alerts",
   "observability:manage_alerts",
+
+  // Vehicle Types
+  "vehicle-types:view",
+  "vehicle-types:create",
+  "vehicle-types:edit",
+  "vehicle-types:delete",
 ];
 
 const schema = z.object({

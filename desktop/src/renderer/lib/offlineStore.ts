@@ -19,7 +19,7 @@ export interface OfflineCheckInData {
   shift_id: string;
   plate: string;
   city_code: string;
-  vehicle_type: "CAR" | "MOTO" | "TRUCK";
+  vehicle_type: string;
   check_in_at: string;
 }
 

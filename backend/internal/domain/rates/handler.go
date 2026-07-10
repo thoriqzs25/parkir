@@ -20,7 +20,7 @@ func NewHandler(store *store.Store) *Handler {
 }
 
 type CreateRateRequest struct {
-	VehicleType          string  `json:"vehicle_type" binding:"required,oneof=CAR MOTO TRUCK"`
+	VehicleType          string  `json:"vehicle_type" binding:"required"`
 	FirstHourRate        float64 `json:"first_hour_rate" binding:"required,gte=0"`
 	SubsequentHourlyRate float64 `json:"subsequent_hourly_rate" binding:"required,gte=0"`
 	DailyFlatRate        float64 `json:"daily_flat_rate" binding:"required,gte=0"`
@@ -76,6 +76,12 @@ func (h *Handler) Create(c *gin.Context) {
 	var req CreateRateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "INVALID_INPUT", err.Error())
+		return
+	}
+
+	exists, err := h.store.ValidateVehicleTypeExists(c.Request.Context(), req.VehicleType)
+	if err != nil || !exists {
+		response.BadRequest(c, "INVALID_VEHICLE_TYPE", "unknown vehicle type")
 		return
 	}
 

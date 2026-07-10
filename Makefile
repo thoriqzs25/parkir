@@ -77,6 +77,15 @@ dashboard-run:
 desktop-run:
 	cd desktop && npm run dev
 
+gate-display-run:
+	cd gate-display && npm run dev
+
+gate-display-build:
+	cd gate-display && npm run build
+
+gate-display-test:
+	cd gate-display && npx vitest run
+
 # Deployment
 
 deploy-prod:

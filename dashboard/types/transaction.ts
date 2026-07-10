@@ -4,7 +4,7 @@ export interface Transaction {
   location_id: string;
   shift_id: string;
   operator_id: string;
-  vehicle_type: "CAR" | "MOTO" | "TRUCK";
+  vehicle_type: string;
   plate: string;
   check_in_at: string;
   check_out_at: string;

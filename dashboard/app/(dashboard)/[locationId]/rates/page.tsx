@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { listRates, createRate, updateRate } from "@/lib/api";
+import { listRates, createRate, updateRate, listVehicleTypes } from "@/lib/api";
 import { Rate } from "@/types/rate";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -18,26 +18,22 @@ import { hasPermission } from "@/lib/permissions";
 import { useAuth } from "@/hooks/useAuth";
 import { formatWIBDate } from "@/lib/time";
 
-const schema = z.object({
-  vehicle_type: z.enum(["CAR", "MOTO", "TRUCK"]),
-  first_hour_rate: z.string().min(1, "Required"),
-  subsequent_hourly_rate: z.string().min(1, "Required"),
-  daily_flat_rate: z.string().min(1, "Required"),
-  effective_from: z.string().min(1, "Required"),
-  effective_until: z.string().optional(),
-});
-
-type FormData = z.infer<typeof schema>;
+type FormData = {
+  vehicle_type: string;
+  first_hour_rate: string;
+  subsequent_hourly_rate: string;
+  daily_flat_rate: string;
+  effective_from: string;
+  effective_until?: string;
+};
 type RatePayload = {
-  vehicle_type: "CAR" | "MOTO" | "TRUCK";
+  vehicle_type: string;
   first_hour_rate: number;
   subsequent_hourly_rate: number;
   daily_flat_rate: number;
   effective_from: string;
   effective_until?: string;
 };
-
-const VEHICLE_TYPES = ["CAR", "MOTO", "TRUCK"] as const;
 
 export default function RatesPage() {
   const params = useParams();
@@ -47,6 +43,16 @@ export default function RatesPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Rate | null>(null);
+  const [vehicleTypes, setVehicleTypes] = useState<string[]>([]);
+
+  const schema = useMemo(() => z.object({
+    vehicle_type: z.string().refine((v) => vehicleTypes.includes(v), "Invalid vehicle type"),
+    first_hour_rate: z.string().min(1, "Required"),
+    subsequent_hourly_rate: z.string().min(1, "Required"),
+    daily_flat_rate: z.string().min(1, "Required"),
+    effective_from: z.string().min(1, "Required"),
+    effective_until: z.string().optional(),
+  }), [vehicleTypes]);
 
   const {
     register,
@@ -58,21 +64,25 @@ export default function RatesPage() {
     mode: "onBlur",
   });
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await listRates(locationId);
-      setRates(res || []);
+      const [ratesRes, vts] = await Promise.all([
+        listRates(locationId),
+        listVehicleTypes(),
+      ]);
+      setRates(ratesRes || []);
+      setVehicleTypes(vts.map((vt) => vt.name));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load rates");
+      toast.error(err instanceof Error ? err.message : "Failed to load data");
     } finally {
       setLoading(false);
     }
-  };
+  }, [locationId]);
 
   useEffect(() => {
     load();
-  }, [locationId]);
+  }, [load]);
 
   const openCreate = () => {
     setEditing(null);
@@ -185,7 +195,7 @@ export default function RatesPage() {
               error={errors.vehicle_type?.message}
               {...register("vehicle_type")}
             >
-              {VEHICLE_TYPES.map((t) => (
+              {vehicleTypes.map((t) => (
                 <option key={t} value={t}>
                   {t}
                 </option>
