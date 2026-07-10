@@ -20,12 +20,22 @@ func TestOfflineSessionSync(t *testing.T) {
 	locationID := seedLocation(ctx, t, s)
 	operatorID := seedOperator(ctx, t, s)
 	seedRate(ctx, t, s, locationID, operatorID)
-	shift, err := s.StartShift(ctx, store.StartShiftInput{
-		OperatorID: operatorID,
-		LocationID: locationID,
+	
+	// Create shift config and get shift instance
+	_, err := s.CreateLocationShiftConfig(ctx, store.CreateLocationShiftConfigInput{
+		LocationID:  locationID,
+		ShiftCode:   "08-16",
+		ShiftNumber: 1,
+		StartTime:   "08:00:00",
+		EndTime:     "16:00:00",
 	})
 	if err != nil {
-		t.Fatalf("start shift: %v", err)
+		t.Fatalf("create shift config: %v", err)
+	}
+	
+	shift, err := s.GetOrCreateShift(ctx, locationID, 1, time.Now())
+	if err != nil {
+		t.Fatalf("get or create shift: %v", err)
 	}
 
 	offlineSessionID := generateUUID()
@@ -63,12 +73,22 @@ func TestOfflineSyncConflictDuplicatePlate(t *testing.T) {
 	locationID := seedLocation(ctx, t, s)
 	operatorID := seedOperator(ctx, t, s)
 	seedRate(ctx, t, s, locationID, operatorID)
-	shift, err := s.StartShift(ctx, store.StartShiftInput{
-		OperatorID: operatorID,
-		LocationID: locationID,
+	
+	// Create shift config and get shift instance
+	_, err := s.CreateLocationShiftConfig(ctx, store.CreateLocationShiftConfigInput{
+		LocationID:  locationID,
+		ShiftCode:   "08-16",
+		ShiftNumber: 1,
+		StartTime:   "08:00:00",
+		EndTime:     "16:00:00",
 	})
 	if err != nil {
-		t.Fatalf("start shift: %v", err)
+		t.Fatalf("create shift config: %v", err)
+	}
+	
+	shift, err := s.GetOrCreateShift(ctx, locationID, 1, time.Now())
+	if err != nil {
+		t.Fatalf("get or create shift: %v", err)
 	}
 
 	plate := "BCONFLICT1"
@@ -126,12 +146,22 @@ func TestOfflinePaymentSync(t *testing.T) {
 	locationID := seedLocation(ctx, t, s)
 	operatorID := seedOperator(ctx, t, s)
 	seedRate(ctx, t, s, locationID, operatorID)
-	shift, err := s.StartShift(ctx, store.StartShiftInput{
-		OperatorID: operatorID,
-		LocationID: locationID,
+	
+	// Create shift config and get shift instance
+	_, err := s.CreateLocationShiftConfig(ctx, store.CreateLocationShiftConfigInput{
+		LocationID:  locationID,
+		ShiftCode:   "08-16",
+		ShiftNumber: 1,
+		StartTime:   "08:00:00",
+		EndTime:     "16:00:00",
 	})
 	if err != nil {
-		t.Fatalf("start shift: %v", err)
+		t.Fatalf("create shift config: %v", err)
+	}
+	
+	shift, err := s.GetOrCreateShift(ctx, locationID, 1, time.Now())
+	if err != nil {
+		t.Fatalf("get or create shift: %v", err)
 	}
 
 	sessionID := generateUUID()
@@ -209,12 +239,22 @@ func TestResolveSyncConflictVoidOffline(t *testing.T) {
 	operatorID := seedOperator(ctx, t, s)
 	managerID := seedOperator(ctx, t, s)
 	seedRate(ctx, t, s, locationID, operatorID)
-	shift, err := s.StartShift(ctx, store.StartShiftInput{
-		OperatorID: operatorID,
-		LocationID: locationID,
+	
+	// Create shift config and get shift instance
+	_, err := s.CreateLocationShiftConfig(ctx, store.CreateLocationShiftConfigInput{
+		LocationID:  locationID,
+		ShiftCode:   "08-16",
+		ShiftNumber: 1,
+		StartTime:   "08:00:00",
+		EndTime:     "16:00:00",
 	})
 	if err != nil {
-		t.Fatalf("start shift: %v", err)
+		t.Fatalf("create shift config: %v", err)
+	}
+	
+	shift, err := s.GetOrCreateShift(ctx, locationID, 1, time.Now())
+	if err != nil {
+		t.Fatalf("get or create shift: %v", err)
 	}
 
 	plate := "BRESOLVE1"

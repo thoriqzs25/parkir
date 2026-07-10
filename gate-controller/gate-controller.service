@@ -1,0 +1,20 @@
+[Unit]
+Description=PAS Gate Controller
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/parkir/gate-controller
+Environment=GATE_CONTROLLER_MODE=auto
+Environment=GATE_CONTROLLER_PORT=8000
+Environment=GATE_CONTROLLER_HOST=0.0.0.0
+Environment=GATE_CONTROLLER_RELAY_PIN=17
+Environment=GATE_CONTROLLER_LOOP_PIN=18
+Environment=GATE_CONTROLLER_AUTO_CLOSE_TIMEOUT=30.0
+ExecStart=/usr/bin/python3 /home/pi/parkir/gate-controller/src/gate_controller/main.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -250,19 +250,3 @@ func (s *Store) GetTransactionBySessionID(ctx context.Context, sessionID string)
 	}
 	return &tx, nil
 }
-
-func (s *Store) SumCashByShift(ctx context.Context, shiftID string) (float64, error) {
-	var sum *float64
-	err := s.pool.QueryRow(ctx, `
-		SELECT COALESCE(SUM(fee_amount), 0)
-		FROM transactions
-		WHERE shift_id = $1 AND voided = false AND payment_method = 'CASH'
-	`, shiftID).Scan(&sum)
-	if err != nil {
-		return 0, fmt.Errorf("sum cash by shift: %w", err)
-	}
-	if sum == nil {
-		return 0, nil
-	}
-	return *sum, nil
-}

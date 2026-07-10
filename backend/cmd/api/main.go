@@ -27,6 +27,7 @@ import (
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/reports"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/roles"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/sessions"
+	"github.com/thoriqzs/PARKIR/backend/internal/domain/shiftconfigs"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/shifts"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/sync"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/transactions"
@@ -119,6 +120,7 @@ func main() {
 		sessions.NewHandler(store).RegisterRoutes(api)
 		transactions.NewHandler(store).RegisterRoutes(api)
 		shifts.NewHandler(store).RegisterRoutes(api)
+		shiftconfigs.NewHandler(store).RegisterRoutes(api)
 		sync.NewHandler(store).RegisterRoutes(api)
 
 		incidents.NewHandler(store).RegisterRoutes(api)

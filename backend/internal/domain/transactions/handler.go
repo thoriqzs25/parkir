@@ -116,12 +116,9 @@ func (h *Handler) recordPayment(c *gin.Context, sessionID, method string, amount
 
 	operatorID := middleware.GetUserID(c)
 
-	shift, err := h.store.GetOpenShiftForOperator(ctx, operatorID)
-	if err != nil {
-		return nil, nil, err
-	}
-	if shift.LocationID != session.LocationID {
-		return nil, nil, errors.ErrShiftLocationMismatch
+	// Use the shift from session (auto-detected at check-in)
+	if session.ShiftID == nil {
+		return nil, nil, errors.ErrNotFound
 	}
 
 	fee := *session.FeeAmount
@@ -158,7 +155,7 @@ func (h *Handler) recordPayment(c *gin.Context, sessionID, method string, amount
 	tx, err := h.store.CreateTransaction(ctx, store.CreateTransactionInput{
 		SessionID:            session.ID,
 		LocationID:           session.LocationID,
-		ShiftID:              shift.ID,
+		ShiftID:              *session.ShiftID,
 		OperatorID:           operatorID,
 		VehicleType:          session.VehicleType,
 		Plate:                session.Plate,
@@ -237,10 +234,15 @@ func (h *Handler) Void(c *gin.Context) {
 		return
 	}
 
+	// Increment void count for the shift
+	if tx.ShiftID != "" {
+		_ = h.store.IncrementVoidCount(c.Request.Context(), tx.ShiftID)
+	}
+
 	h.logAudit(c, "transaction.voided", tx.ID, &tx.LocationID, gin.H{
-		"session_id":    tx.SessionID,
-		"void_reason":   req.VoidReason,
-		"voided_by":     actorID,
+		"session_id":     tx.SessionID,
+		"void_reason":    req.VoidReason,
+		"voided_by":      actorID,
 		"receipt_number": tx.ReceiptNumber,
 	})
 

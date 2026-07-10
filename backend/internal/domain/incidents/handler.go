@@ -91,6 +91,14 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
+	// Increment incident count for the shift if session is provided
+	if req.SessionID != nil && *req.SessionID != "" {
+		session, err := h.store.GetSessionByID(c.Request.Context(), *req.SessionID)
+		if err == nil && session.ShiftID != nil {
+			_ = h.store.IncrementIncidentCount(c.Request.Context(), *session.ShiftID)
+		}
+	}
+
 	h.logAudit(c, "incident.created", inc.ID, &inc.LocationID, gin.H{
 		"type":        inc.Type,
 		"session_id":  inc.SessionID,

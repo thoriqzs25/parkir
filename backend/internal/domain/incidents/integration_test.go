@@ -98,13 +98,21 @@ func TestVoidTransactionAdjustment(t *testing.T) {
 	operatorID := newSeedUser(ctx, t, s, "operator")
 	managerID := newSeedManager(ctx, t, s, locationID)
 
-	// Create a shift and session
-	shift, err := s.StartShift(ctx, store.StartShiftInput{
-		OperatorID: operatorID,
-		LocationID: locationID,
+	// Create shift config and get shift instance
+	_, err := s.CreateLocationShiftConfig(ctx, store.CreateLocationShiftConfigInput{
+		LocationID:  locationID,
+		ShiftCode:   "08-16",
+		ShiftNumber: 1,
+		StartTime:   "08:00:00",
+		EndTime:     "16:00:00",
 	})
 	if err != nil {
-		t.Fatalf("start shift: %v", err)
+		t.Fatalf("create shift config: %v", err)
+	}
+	
+	shift, err := s.GetOrCreateShift(ctx, locationID, 1, time.Now())
+	if err != nil {
+		t.Fatalf("get or create shift: %v", err)
 	}
 
 	session, err := s.CreateSession(ctx, store.CreateSessionInput{
@@ -184,21 +192,25 @@ func TestReassignSession(t *testing.T) {
 	operator1 := newSeedUser(ctx, t, s, "operator")
 	operator2 := newSeedUser(ctx, t, s, "operator")
 
-	shift1, err := s.StartShift(ctx, store.StartShiftInput{
-		OperatorID: operator1,
-		LocationID: locationID,
+	// Create shift configs
+	_, err := s.CreateLocationShiftConfig(ctx, store.CreateLocationShiftConfigInput{
+		LocationID:  locationID,
+		ShiftCode:   "08-16",
+		ShiftNumber: 1,
+		StartTime:   "08:00:00",
+		EndTime:     "16:00:00",
 	})
 	if err != nil {
-		t.Fatalf("start shift 1: %v", err)
+		t.Fatalf("create shift config: %v", err)
 	}
 
-	shift2, err := s.StartShift(ctx, store.StartShiftInput{
-		OperatorID: operator2,
-		LocationID: locationID,
-	})
+	shift1, err := s.GetOrCreateShift(ctx, locationID, 1, time.Now())
 	if err != nil {
-		t.Fatalf("start shift 2: %v", err)
+		t.Fatalf("get or create shift 1: %v", err)
 	}
+
+	// For operator2, use same shift (static shift model)
+	shift2 := shift1
 
 	session, err := s.CreateSession(ctx, store.CreateSessionInput{
 		LocationID:  locationID,
