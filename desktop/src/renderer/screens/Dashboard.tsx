@@ -75,6 +75,10 @@ export function Dashboard() {
             <h3>Report Incident</h3>
             <p>File an operational issue</p>
           </button>
+          <button className="menu-card" onClick={() => navigate("/gate-setup")}>
+            <h3>Gate Setup</h3>
+            <p>Register entry/exit gates</p>
+          </button>
         </div>
       </div>
     );
@@ -107,11 +111,15 @@ export function Dashboard() {
           <h3>History</h3>
           <p>View closed sessions</p>
         </button>
-        <button className="menu-card" onClick={() => navigate("/incident")}>
-          <h3>Report Incident</h3>
-          <p>File an operational issue</p>
-        </button>
-      </div>
+          <button className="menu-card" onClick={() => navigate("/incident")}>
+            <h3>Report Incident</h3>
+            <p>File an operational issue</p>
+          </button>
+          <button className="menu-card" onClick={() => navigate("/gate-setup")}>
+            <h3>Gate Setup</h3>
+            <p>Register entry/exit gates</p>
+          </button>
+        </div>
       <EndShiftDialog
         open={showEndShift}
         onConfirm={handleEndShift}

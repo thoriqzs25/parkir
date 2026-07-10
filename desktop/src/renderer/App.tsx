@@ -10,6 +10,7 @@ import { CheckOut } from "./screens/CheckOut";
 import { Payment } from "./screens/Payment";
 import { Success } from "./screens/Success";
 import { History } from "./screens/History";
+import { GateSetup } from "./screens/GateSetup";
 import { IncidentReport } from "./screens/IncidentReport";
 import { useOnlineStatus } from "./hooks/useOnlineStatus";
 import { getPendingItems } from "./lib/offlineStore";
@@ -177,6 +178,14 @@ function AppRoutes() {
             <RequireShift>
               <IncidentReport />
             </RequireShift>
+          }
+        />
+        <Route
+          path="/gate-setup"
+          element={
+            <RequireUser>
+              <GateSetup />
+            </RequireUser>
           }
         />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />

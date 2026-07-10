@@ -12,6 +12,7 @@ import { AuditLog } from "@/types/auditlog";
 import { Alert, AlertConfig, HealthComponents } from "@/types/alert";
 import { DailyRevenueRow, OccupancyRow, VehicleBreakdownRow, OperatorActivityRow } from "@/types/report";
 import { VehicleType, CreateVehicleTypeInput, UpdateVehicleTypeInput } from "@/types/vehicle_type";
+import { Gate, RegisterGateInput, UpdateGateInput } from "@/types/gate";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
@@ -504,6 +505,36 @@ export function updateVehicleType(name: string, input: UpdateVehicleTypeInput) {
 
 export function deleteVehicleType(name: string) {
   return apiRequest<void>(`/api/v1/vehicle-types/${encodeURIComponent(name)}`, {
+    method: "DELETE",
+  });
+}
+
+// Gates
+export function listGates(locationId?: string) {
+  const params = locationId ? `?location_id=${encodeURIComponent(locationId)}` : "";
+  return apiRequest<Gate[]>(`/api/v1/gates${params}`);
+}
+
+export function getGate(id: string) {
+  return apiRequest<Gate>(`/api/v1/gates/${encodeURIComponent(id)}`);
+}
+
+export function registerGate(input: RegisterGateInput) {
+  return apiRequest<Gate>("/api/v1/gates", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateGate(id: string, input: UpdateGateInput) {
+  return apiRequest<Gate>(`/api/v1/gates/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteGate(id: string) {
+  return apiRequest<void>(`/api/v1/gates/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });
 }
