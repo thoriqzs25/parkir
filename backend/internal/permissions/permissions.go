@@ -69,6 +69,12 @@ var ValidPermissions = map[string]bool{
 	"observability:view_alerts":  true,
 	"observability:manage_alerts": true,
 
+	// Gates
+	"gates:view":     true,
+	"gates:register": true,
+	"gates:edit":     true,
+	"gates:delete":   true,
+
 	// Vehicle Types
 	"vehicle-types:view":   true,
 	"vehicle-types:create": true,

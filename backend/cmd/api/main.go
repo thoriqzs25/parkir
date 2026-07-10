@@ -33,6 +33,7 @@ import (
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/transactions"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/users"
 	"github.com/thoriqzs/PARKIR/backend/internal/domain/vehicletypes"
+	gatedomain "github.com/thoriqzs/PARKIR/backend/internal/domain/gate"
 	"github.com/thoriqzs/PARKIR/backend/internal/logger"
 	"github.com/thoriqzs/PARKIR/backend/internal/middleware"
 	"github.com/thoriqzs/PARKIR/backend/internal/notifier"
@@ -99,11 +100,13 @@ func main() {
 	health.RegisterComponentRoutes(router, pool)
 
 	authHandler := authdomain.NewHandler(authService, store)
+	gateHandler := gatedomain.NewHandler(store)
 
 	// Public API routes (no auth required)
 	public := router.Group("/api/v1")
 	{
 		authHandler.RegisterPublicRoutes(public)
+		gateHandler.RegisterPublicRoutes(public)
 	}
 
 	// Protected API routes (auth required)
@@ -132,6 +135,8 @@ func main() {
 		backupdomain.NewHandler(backupScheduler).RegisterRoutes(api)
 
 		vehicletypes.NewHandler(store).RegisterRoutes(api)
+
+		gateHandler.RegisterAdminRoutes(api)
 	}
 
 	alertCtx, alertCancel := context.WithCancel(context.Background())

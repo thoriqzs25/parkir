@@ -60,6 +60,7 @@ func NewTestDB(t *testing.T) *TestDB {
 			"incident_notes",
 			"incidents",
 			"audit_logs",
+			"gates",
 			"transactions",
 			"sessions",
 			"shifts",
