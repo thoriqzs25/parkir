@@ -70,31 +70,48 @@ func (h *Handler) CheckIn(c *gin.Context) {
 	}
 
 	operatorID := middleware.GetUserID(c)
+	ctx := c.Request.Context()
+	checkInAt := time.Now()
 
-	// Require an open shift for the operator at this location.
-	shift, err := h.store.GetOpenShiftForOperator(c.Request.Context(), operatorID)
+	// Auto-detect shift based on check-in time
+	shiftConfig, err := h.store.GetShiftConfigByTimeWithFallback(ctx, req.LocationID, checkInAt)
 	if err != nil {
 		if err == errors.ErrNotFound {
-			response.BadRequest(c, "NO_OPEN_SHIFT", "operator must start a shift before checking in vehicles")
+			response.BadRequest(c, "NO_SHIFT_CONFIG", "no shift configuration found for this location and time")
 			return
 		}
+		_ = c.Error(err)
 		response.InternalServerError(c)
 		return
 	}
-	if shift.LocationID != req.LocationID {
-		response.BadRequest(c, "SHIFT_LOCATION_MISMATCH", "open shift is for a different location")
+
+	// Determine shift date (today, unless overnight shift and current time is before end_time)
+	shiftDate := time.Date(checkInAt.Year(), checkInAt.Month(), checkInAt.Day(), 0, 0, 0, 0, checkInAt.Location())
+	if shiftConfig.IsOvernight {
+		endTime, _ := time.Parse("15:04:05", shiftConfig.EndTime)
+		if checkInAt.Hour() < endTime.Hour() || (checkInAt.Hour() == endTime.Hour() && checkInAt.Minute() < endTime.Minute()) {
+			// Current time is in the "next day" part of overnight shift
+			shiftDate = shiftDate.AddDate(0, 0, -1)
+		}
+	}
+
+	// Get or create shift instance
+	shift, err := h.store.GetOrCreateShift(ctx, req.LocationID, shiftConfig.ShiftNumber, shiftDate)
+	if err != nil {
+		_ = c.Error(err)
+		response.InternalServerError(c)
 		return
 	}
 
 	plate := normalizePlate(req.Plate)
 
 	duplicate := false
-	_, dupErr := h.store.FindActiveSessionByPlate(c.Request.Context(), req.LocationID, plate)
+	_, dupErr := h.store.FindActiveSessionByPlate(ctx, req.LocationID, plate)
 	if dupErr == nil {
 		duplicate = true
 	}
 
-	session, err := h.store.CreateSession(c.Request.Context(), store.CreateSessionInput{
+	session, err := h.store.CreateSession(ctx, store.CreateSessionInput{
 		LocationID:  req.LocationID,
 		OperatorID:  operatorID,
 		ShiftID:     shift.ID,
@@ -109,9 +126,11 @@ func (h *Handler) CheckIn(c *gin.Context) {
 	}
 
 	h.logAudit(c, "session.check_in", session.ID, &req.LocationID, gin.H{
-		"plate":        plate,
-		"vehicle_type": req.VehicleType,
-		"shift_id":     shift.ID,
+		"plate":         plate,
+		"vehicle_type":  req.VehicleType,
+		"shift_id":      shift.ID,
+		"shift_number":  shift.ShiftNumber,
+		"shift_date":    shift.ShiftDate,
 	})
 
 	response.Created(c, SessionResponse{Session: *session, DuplicatePlate: duplicate})

@@ -80,6 +80,13 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
+	// Create default shift configs for the location
+	if err := h.store.CreateDefaultShiftConfigs(c.Request.Context(), loc.ID); err != nil {
+		// Log error but don't fail the request
+		// The configs can be created manually later
+		c.Set("shift_config_error", err.Error())
+	}
+
 	h.logAudit(c, "location.created", loc.ID, &loc.ID, gin.H{"name": req.Name, "code": req.Code})
 	response.Created(c, loc)
 }

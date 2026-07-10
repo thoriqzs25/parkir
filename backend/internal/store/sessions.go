@@ -34,7 +34,7 @@ type Session struct {
 type CreateSessionInput struct {
 	LocationID  string
 	OperatorID  string
-	ShiftID     string
+	ShiftID     string // Required - auto-detected from check-in time
 	Plate       string
 	CityCode    string
 	VehicleType string

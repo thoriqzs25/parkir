@@ -218,12 +218,23 @@ func seedOperator(ctx context.Context, t *testing.T, s *store.Store, roleName st
 
 func seedShift(ctx context.Context, t *testing.T, s *store.Store, operatorID, locationID string) *store.Shift {
 	t.Helper()
-	shift, err := s.StartShift(ctx, store.StartShiftInput{
-		OperatorID: operatorID,
-		LocationID: locationID,
-	})
+	// Ensure shift config exists
+	configs, err := s.ListLocationShiftConfigs(ctx, locationID)
+	if err != nil || len(configs) == 0 {
+		// Create default shift config
+		_, _ = s.CreateLocationShiftConfig(ctx, store.CreateLocationShiftConfigInput{
+			LocationID:  locationID,
+			ShiftCode:   "08-16",
+			ShiftNumber: 1,
+			StartTime:   "08:00:00",
+			EndTime:     "16:00:00",
+		})
+	}
+	
+	// Get or create shift instance for today
+	shift, err := s.GetOrCreateShift(ctx, locationID, 1, time.Now())
 	if err != nil {
-		t.Fatalf("start shift: %v", err)
+		t.Fatalf("get or create shift: %v", err)
 	}
 	return shift
 }
