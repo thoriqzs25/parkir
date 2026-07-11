@@ -49,7 +49,12 @@ func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 	{
 		locationsWithManage.POST("", h.Create)
 		locationsWithManage.PATCH("/:id", h.Update)
-		locationsWithManage.POST("/:id/deactivate", h.Deactivate)
+	}
+
+	locationsWithDeactivate := r.Group("/locations")
+	locationsWithDeactivate.Use(middleware.RequirePermission("locations:deactivate"))
+	{
+		locationsWithDeactivate.POST("/:id/deactivate", h.Deactivate)
 	}
 
 	locationsWithAssign := r.Group("/locations")
