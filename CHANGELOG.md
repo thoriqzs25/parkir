@@ -29,3 +29,8 @@
 ### Fixed
 - Registration screen now shows device ID and IP address
 - TID: placeholder registration screen replaced with full implementation
+
+### Known API route mismatches (identified during audit)
+- **Desktop shift routes missing**: `GET /shifts/me/open`, `POST /shifts/start`, `POST /shifts/:id/end` are called by the desktop app but have no backend handler — operators cannot start/end shifts
+- **Dashboard shift listing path mismatch**: `GET /api/v1/shifts?location_id=...` called but backend only has `GET /api/v1/locations/:id/shifts`
+- **Location deactivation permission mismatch**: UI checks `locations:deactivate` but backend enforces `locations:create`
