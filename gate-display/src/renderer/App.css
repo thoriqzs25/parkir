@@ -168,6 +168,18 @@ html, body, #root { height: 100%; background: var(--bg-primary); color: var(--te
 }
 .debug-panel button:hover { background: #666; }
 
+.log-panel {
+  flex: 1;
+  background: #111;
+  border: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  min-height: 0;
+}
+.log-line { color: var(--text-muted); line-height: 1.6; }
+
 .registration-screen {
   height: 100vh;
   display: flex;
@@ -214,3 +226,15 @@ html, body, #root { height: 100%; background: var(--bg-primary); color: var(--te
 }
 
 .info-row .mono { font-family: var(--font-mono); color: var(--text-muted); }
+
+.version-text {
+  position: fixed;
+  bottom: 12px;
+  right: 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--font-mono);
+}
+.version-text:hover { color: var(--text-primary); }

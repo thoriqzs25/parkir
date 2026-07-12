@@ -9,7 +9,7 @@ const TIMEOUT_MS: Record<string, number> = {
   ADVANCE_EXIT: 2000,
 }
 
-export function useGateState(controller: ControllerInterface): DisplayState {
+export function useGateState(controller: ControllerInterface, onTransition?: (msg: string) => void): DisplayState {
   const [currentState, setCurrentState] = useState<GateState>('IDLE')
   const [display, setDisplay] = useState<DisplayState>(getDisplay('IDLE'))
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -23,17 +23,27 @@ export function useGateState(controller: ControllerInterface): DisplayState {
 
   const dispatch = useCallback(
     (event: ControllerEvent | TimeoutAction) => {
+      const eventLabel = typeof event === 'string' ? event : event.type
       clearTimer()
       setCurrentState((prev) => {
         const result = transition(prev, event)
+        const msg = `[GATE] ${prev} → ${eventLabel} → ${result.state}`
+        console.log(msg)
+        onTransition?.(msg)
 
         if (result.command) {
+          const cmdMsg = `[GATE] command: ${result.command.type}`
+          console.log(cmdMsg)
+          onTransition?.(cmdMsg)
           controller.sendCommand(result.command)
         }
 
         if (result.timeout) {
           const ms = TIMEOUT_MS[result.timeout]
           const action = result.timeout as TimeoutAction
+          const tmMsg = `[GATE] timeout ${result.timeout} in ${ms}ms`
+          console.log(tmMsg)
+          onTransition?.(tmMsg)
           timerRef.current = setTimeout(() => dispatch(action), ms)
         }
 

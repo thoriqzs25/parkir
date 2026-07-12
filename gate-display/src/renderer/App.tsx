@@ -20,7 +20,11 @@ export default function App() {
     })
   }, [])
 
+  const handleBypass = (apiUrl: string, locationId: string) => {
+    setConfig({ api_url: apiUrl, location_id: locationId })
+  }
+
   if (loading) return null
-  if (!config) return <RegistrationScreen />
+  if (!config) return <RegistrationScreen onBypass={handleBypass} />
   return <GateDisplay apiUrl={config.api_url} locationId={config.location_id} />
 }

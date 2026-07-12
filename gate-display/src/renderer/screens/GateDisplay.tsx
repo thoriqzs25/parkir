@@ -28,7 +28,11 @@ interface GateInfo {
 
 export default function GateDisplay({ apiUrl, locationId }: Props) {
   const controller = useMemo(() => new MockController(), [])
-  const display = useGateState(controller)
+  const [logs, setLogs] = useState<string[]>([])
+  const display = useGateState(controller, (msg) => {
+    const ts = new Date().toLocaleTimeString('id-ID', { hour12: false })
+    setLogs((prev) => [...prev.slice(-49), `${ts} ${msg}`])
+  })
   const [gateInfo, setGateInfo] = useState<GateInfo | null>(null)
   const [locationName, setLocationName] = useState('PARKIR')
 
@@ -61,6 +65,11 @@ export default function GateDisplay({ apiUrl, locationId }: Props) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <LoopIndicator state={display.loopIndicator} />
             <TicketButton state={display.ticketIndicator} />
+          </div>
+          <div className="log-panel">
+            {logs.map((line, i) => (
+              <div key={i} className="log-line">{line}</div>
+            ))}
           </div>
         </div>
         <div className="right-panel">
