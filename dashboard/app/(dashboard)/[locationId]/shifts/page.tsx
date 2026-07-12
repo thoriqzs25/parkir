@@ -23,8 +23,7 @@ export default function ShiftsPage() {
   const load = async (newOffset = 0) => {
     setLoading(true);
     try {
-      const res = await listShifts({
-        location_id: locationId,
+      const res = await listShifts(locationId, {
         limit: String(limit),
         offset: String(newOffset),
       });

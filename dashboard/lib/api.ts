@@ -269,9 +269,9 @@ export function voidTransaction(id: string, input: VoidTransactionInput) {
 }
 
 // Shifts
-export function listShifts(params?: Record<string, string>) {
+export function listShifts(locationId: string, params?: Record<string, string>) {
   const qs = params ? "?" + new URLSearchParams(params).toString() : "";
-  return apiRequest<PaginatedItems<Shift>>(`/api/v1/shifts${qs}`);
+  return apiRequest<PaginatedItems<Shift>>(`/api/v1/locations/${locationId}/shifts${qs}`);
 }
 
 export function getShift(id: string, include?: "transactions") {

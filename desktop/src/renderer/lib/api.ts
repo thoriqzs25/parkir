@@ -98,35 +98,6 @@ export async function listLocations(): Promise<{ items: Location[]; meta?: { tot
   return request<{ items: Location[]; meta?: { total: number } }>("GET", "/locations");
 }
 
-export async function getMyOpenShift(): Promise<Shift | null> {
-  try {
-    return await request<Shift>("GET", "/shifts/me/open");
-  } catch (err) {
-    const error = err as Error & { status?: number };
-    if (error.status === 404) {
-      return null;
-    }
-    throw err;
-  }
-}
-
-export interface StartShiftInput {
-  location_id: string;
-}
-
-export async function startShift(input: StartShiftInput): Promise<Shift> {
-  return request<Shift>("POST", "/shifts/start", input);
-}
-
-export interface EndShiftInput {
-  cash_handover_amount: number;
-  discrepancy_notes?: string;
-}
-
-export async function endShift(id: string, input: EndShiftInput): Promise<Shift> {
-  return request<Shift>("POST", `/shifts/${id}/end`, input);
-}
-
 export interface CheckInInput {
   location_id: string;
   plate: string;
