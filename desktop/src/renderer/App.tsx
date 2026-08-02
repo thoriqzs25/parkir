@@ -87,14 +87,6 @@ function RequireUser({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function RequireShift({ children }: { children: React.ReactNode }) {
-  const { openShift } = useAuth();
-  if (!openShift) {
-    return <Navigate to="/locations" replace />;
-  }
-  return <>{children}</>;
-}
-
 function RequireLocation({ children }: { children: React.ReactNode }) {
   const { currentLocation } = useAuth();
   if (!currentLocation) {
@@ -135,33 +127,33 @@ function AppRoutes() {
         <Route
           path="/check-in"
           element={
-            <RequireShift>
+            <RequireLocation>
               <CheckIn />
-            </RequireShift>
+            </RequireLocation>
           }
         />
         <Route
           path="/check-out"
           element={
-            <RequireShift>
+            <RequireLocation>
               <CheckOut />
-            </RequireShift>
+            </RequireLocation>
           }
         />
         <Route
           path="/payment"
           element={
-            <RequireShift>
+            <RequireLocation>
               <Payment />
-            </RequireShift>
+            </RequireLocation>
           }
         />
         <Route
           path="/success"
           element={
-            <RequireShift>
+            <RequireLocation>
               <Success />
-            </RequireShift>
+            </RequireLocation>
           }
         />
         <Route
@@ -175,9 +167,9 @@ function AppRoutes() {
         <Route
           path="/incident"
           element={
-            <RequireShift>
+            <RequireLocation>
               <IncidentReport />
-            </RequireShift>
+            </RequireLocation>
           }
         />
         <Route

@@ -43,7 +43,6 @@ function buildBatchPayload(items: PendingItem[]) {
             type: "payment",
             transaction_id: item.data.transaction_id,
             session_id: item.data.session_id,
-            shift_id: item.data.shift_id,
             operator_id: item.data.operator_id,
             location_id: item.data.location_id,
             duration_hours: item.data.duration_hours,

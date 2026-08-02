@@ -1,4 +1,4 @@
-import type { Location, MeResponse, Rate, Session, Shift, Transaction, User } from "../types";
+import type { Location, MeResponse, Rate, Session, Transaction, User } from "../types";
 
 const API_BASE_URL = "http://localhost:8080/api/v1";
 

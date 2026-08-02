@@ -16,7 +16,7 @@ function extractCityCode(plate: string): string {
 }
 
 export function CheckIn() {
-  const { currentLocation, openShift } = useAuth();
+  const { user, currentLocation } = useAuth();
   const online = useOnlineStatus();
   const navigate = useNavigate();
   const [vehicleType, setVehicleType] = useState<string>("CAR");
@@ -42,7 +42,7 @@ export function CheckIn() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentLocation || !openShift) return;
+    if (!currentLocation || !user) return;
 
     setLoading(true);
     setError(null);
@@ -64,8 +64,7 @@ export function CheckIn() {
         const localSession: LocalSession = {
           id: sessionId,
           location_id: currentLocation.id,
-          operator_id: openShift.operator_id,
-          shift_id: openShift.id,
+          operator_id: user.id,
           plate: normalizedPlate,
           city_code: extractCityCode(normalizedPlate),
           vehicle_type: vehicleType,
@@ -82,8 +81,7 @@ export function CheckIn() {
           session: {
             id: sessionId,
             location_id: currentLocation.id,
-            operator_id: openShift.operator_id,
-            shift_id: openShift.id,
+            operator_id: user.id,
             plate: normalizedPlate,
             city_code: extractCityCode(normalizedPlate),
             vehicle_type: vehicleType,
@@ -119,8 +117,8 @@ export function CheckIn() {
     });
   };
 
-  if (!currentLocation || !openShift) {
-    return <div className="screen">No active shift. Please select a location.</div>;
+  if (!currentLocation || !user) {
+    return <div className="screen">Please select a location.</div>;
   }
 
   return (

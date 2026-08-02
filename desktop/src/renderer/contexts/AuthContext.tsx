@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import type { Location, Shift, User } from "../types";
+import type { Location, User } from "../types";
 import * as api from "../lib/api";
 import { getRateCache, setRateCache } from "../lib/offlineStore";
 
@@ -7,16 +7,12 @@ interface AuthContextValue {
   user: User | null;
   locations: Location[];
   currentLocation: Location | null;
-  openShift: Shift | null;
   permissions: string[];
   loading: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   setCurrentLocation: (location: Location | null) => void;
-  refreshOpenShift: () => Promise<void>;
-  startShift: (location: Location) => Promise<void>;
-  endShift: (cashHandoverAmount: number, notes?: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -27,7 +23,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
   const [currentLocation, setCurrentLocation] = useState<Location | null>(null);
-  const [openShift, setOpenShift] = useState<Shift | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,8 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLocations(userLocations);
         if (userLocations.length === 1) {
           setCurrentLocation(userLocations[0]);
-          const shift = await api.getMyOpenShift().catch(() => null);
-          setOpenShift(shift);
         }
       } catch (err) {
         setError("Session expired. Please log in again.");
@@ -100,8 +93,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setPermissions(perms);
       setLocations(userLocations);
       localStorage.setItem(LOCAL_STORAGE_EMAIL_KEY, email);
-      const shift = await api.getMyOpenShift().catch(() => null);
-      setOpenShift(shift);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Login failed";
       setError(message);
@@ -119,38 +110,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setLocations([]);
       setCurrentLocation(null);
-      setOpenShift(null);
       setPermissions([]);
       setError(null);
       setLoading(false);
     }
-  };
-
-  const refreshOpenShift = async () => {
-    if (!currentLocation) {
-      setOpenShift(null);
-      return;
-    }
-    try {
-      const shift = await api.getMyOpenShift();
-      setOpenShift(shift);
-    } catch {
-      setOpenShift(null);
-    }
-  };
-
-  const startShift = async (location: Location) => {
-    const shift = await api.startShift({ location_id: location.id });
-    setOpenShift(shift);
-  };
-
-  const endShift = async (cashHandoverAmount: number, notes?: string) => {
-    if (!openShift) return;
-    await api.endShift(openShift.id, {
-      cash_handover_amount: cashHandoverAmount,
-      discrepancy_notes: notes,
-    });
-    setOpenShift(null);
   };
 
   return (
@@ -159,16 +122,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         locations,
         currentLocation,
-        openShift,
         permissions,
         loading,
         error,
         login,
         logout,
         setCurrentLocation,
-        refreshOpenShift,
-        startShift,
-        endShift,
       }}
     >
       {children}

@@ -3,19 +3,12 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
 export function Layout() {
-  const { user, currentLocation, openShift, logout, endShift } = useAuth();
+  const { user, currentLocation, logout } = useAuth();
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = async () => {
     setShowLogoutConfirm(false);
-    if (openShift) {
-      try {
-        await endShift(0, "Logged out");
-      } catch {
-        // Proceed with logout regardless
-      }
-    }
     await logout();
     navigate("/login");
   };
@@ -30,7 +23,6 @@ export function Layout() {
               {currentLocation.name} ({currentLocation.code})
             </span>
           )}
-          {openShift && <span className="shift-badge">Shift Open</span>}
         </div>
         <div className="header-right">
           {user && (
@@ -49,11 +41,7 @@ export function Layout() {
         <div className="overlay" onClick={() => setShowLogoutConfirm(false)}>
           <div className="dialog card" onClick={(e) => e.stopPropagation()}>
             <h2>Logout</h2>
-            {openShift ? (
-              <p>You have an open shift. Logging out will mark your shift as ended. Are you sure?</p>
-            ) : (
-              <p>Are you sure you want to logout?</p>
-            )}
+            <p>Are you sure you want to logout?</p>
             <div className="dialog-actions">
               <button className="button secondary" onClick={() => setShowLogoutConfirm(false)}>
                 Cancel

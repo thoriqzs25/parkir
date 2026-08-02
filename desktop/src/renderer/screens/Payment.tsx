@@ -40,7 +40,7 @@ function generateTempReceiptNumber(locationCode: string, seq: number) {
 export function Payment() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { currentLocation, openShift } = useAuth();
+  const { currentLocation, user } = useAuth();
   const online = useOnlineStatus();
   const sessionId = searchParams.get("sessionId") || "";
   const fee = Number(searchParams.get("fee") || "0");
@@ -107,8 +107,8 @@ export function Payment() {
       }
 
       // Offline payment flow.
-      if (!openShift || !currentLocation) {
-        setError("Shift/location not available");
+      if (!user || !currentLocation) {
+        setError("User/location not available");
         setLoading(false);
         return;
       }
@@ -151,8 +151,7 @@ export function Payment() {
           data: {
             transaction_id: transactionId,
             session_id: localSession.id,
-            shift_id: openShift.id,
-            operator_id: openShift.operator_id,
+            operator_id: user.id,
             location_id: currentLocation.id,
             duration_hours: durationHours,
             rate_first_hour: rateValues.firstHour,

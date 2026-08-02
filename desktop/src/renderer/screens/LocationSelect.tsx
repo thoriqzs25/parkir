@@ -4,38 +4,25 @@ import { useAuth } from "../contexts/AuthContext";
 import type { Location } from "../types";
 
 export function LocationSelect() {
-  const { user, locations, currentLocation, setCurrentLocation, startShift, openShift } = useAuth();
+  const { user, locations, currentLocation, setCurrentLocation } = useAuth();
   const navigate = useNavigate();
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
-  const [starting, setStarting] = useState(false);
 
   useEffect(() => {
     if (!user) {
       navigate("/login");
-    } else if (currentLocation && openShift) {
+    } else if (currentLocation) {
       navigate("/dashboard");
     }
-  }, [user, currentLocation, openShift, navigate]);
+  }, [user, currentLocation, navigate]);
 
   const handleSelect = (location: Location) => {
     setSelectedLocation(location);
-    setCurrentLocation(location);
   };
 
-  const handleStartShift = async () => {
+  const handleConfirm = () => {
     if (!selectedLocation) return;
-    setStarting(true);
-    try {
-      await startShift(selectedLocation);
-      navigate("/dashboard");
-    } catch {
-      alert("Could not start shift.");
-    } finally {
-      setStarting(false);
-    }
-  };
-
-  const handleContinue = () => {
+    setCurrentLocation(selectedLocation);
     navigate("/dashboard");
   };
 
@@ -61,11 +48,8 @@ export function LocationSelect() {
         </div>
         {selectedLocation && (
           <div className="location-actions">
-            <button className="button primary" onClick={handleStartShift} disabled={starting}>
-              {starting ? "Starting..." : "Start Shift"}
-            </button>
-            <button className="button secondary" onClick={handleContinue}>
-              Continue without shift
+            <button className="button primary" onClick={handleConfirm}>
+              Continue
             </button>
           </div>
         )}

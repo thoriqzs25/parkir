@@ -16,7 +16,6 @@ export interface OfflineCheckInData {
   id: string;
   location_id: string;
   operator_id: string;
-  shift_id: string;
   plate: string;
   city_code: string;
   vehicle_type: string;
@@ -33,7 +32,6 @@ export interface OfflineCheckOutData {
 export interface OfflinePaymentData {
   transaction_id: string;
   session_id: string;
-  shift_id: string;
   operator_id: string;
   location_id: string;
   duration_hours: number;

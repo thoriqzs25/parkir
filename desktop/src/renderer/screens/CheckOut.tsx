@@ -49,7 +49,7 @@ function calculateFeeFromCache(locationId: string, vehicleType: string, checkInA
 }
 
 export function CheckOut() {
-  const { currentLocation, openShift } = useAuth();
+  const { currentLocation } = useAuth();
   const online = useOnlineStatus();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
@@ -99,11 +99,6 @@ export function CheckOut() {
         return;
       }
 
-      if (!openShift) {
-        setError("No open shift");
-        return;
-      }
-
       const checkOutAt = new Date().toISOString();
       const fee =
         session.fee_amount ??
@@ -136,8 +131,8 @@ export function CheckOut() {
     }
   };
 
-  if (!currentLocation || !openShift) {
-    return <div className="screen">No active shift. Please select a location.</div>;
+  if (!currentLocation) {
+    return <div className="screen">Please select a location.</div>;
   }
 
   return (
