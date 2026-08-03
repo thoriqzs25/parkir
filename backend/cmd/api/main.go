@@ -106,7 +106,6 @@ func main() {
 	public := router.Group("/api/v1")
 	{
 		authHandler.RegisterPublicRoutes(public)
-		gateHandler.RegisterPublicRoutes(public)
 	}
 
 	// Protected API routes (auth required)

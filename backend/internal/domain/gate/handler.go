@@ -29,10 +29,6 @@ type UpdateGateRequest struct {
 	IPAddress  *string `json:"ip_address,omitempty"`
 }
 
-func (h *Handler) RegisterPublicRoutes(r *gin.RouterGroup) {
-	r.GET("/gate/:id/info", h.GetGateInfo)
-}
-
 func (h *Handler) RegisterAdminRoutes(r *gin.RouterGroup) {
 	gates := r.Group("/gates")
 	gates.Use(middleware.RequirePermission("gates:view"))
@@ -58,23 +54,6 @@ func (h *Handler) RegisterAdminRoutes(r *gin.RouterGroup) {
 	{
 		gatesDelete.DELETE("/:id", h.DeleteGate)
 	}
-}
-
-func (h *Handler) GetGateInfo(c *gin.Context) {
-	id := c.Param("id")
-
-	info, err := h.store.GetGateInfo(c.Request.Context(), id)
-	if err != nil {
-		if err == errors.ErrNotFound {
-			response.NotFound(c, "location")
-			return
-		}
-		_ = c.Error(err)
-		response.InternalServerError(c)
-		return
-	}
-
-	response.OK(c, info)
 }
 
 func (h *Handler) ListGates(c *gin.Context) {
