@@ -118,7 +118,7 @@ func main() {
 		roles.NewHandler(store).RegisterRoutes(api)
 
 		locations.NewHandler(store).RegisterRoutes(api)
-		rates.NewHandler(store).RegisterRoutes(api.Group("/locations"), api.Group("/rates"))
+		rates.NewHandler(store).RegisterRoutes(api)
 
 		sessions.NewHandler(store).RegisterRoutes(api)
 		transactions.NewHandler(store).RegisterRoutes(api)

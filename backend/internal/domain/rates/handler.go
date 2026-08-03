@@ -20,6 +20,7 @@ func NewHandler(store *store.Store) *Handler {
 }
 
 type CreateRateRequest struct {
+	LocationID           string  `json:"location_id" binding:"required,uuid"`
 	VehicleType          string  `json:"vehicle_type" binding:"required"`
 	FirstHourRate        float64 `json:"first_hour_rate" binding:"required,gte=0"`
 	SubsequentHourlyRate float64 `json:"subsequent_hourly_rate" binding:"required,gte=0"`
@@ -50,29 +51,27 @@ func parseOptionalDate(s *string) (*time.Time, error) {
 	return &t, nil
 }
 
-func (h *Handler) RegisterRoutes(locations *gin.RouterGroup, rates *gin.RouterGroup) {
-	locRates := locations.Group("/:id/rates")
-	locRates.Use(middleware.RequirePermission("rates:view"))
+func (h *Handler) RegisterRoutes(rates *gin.RouterGroup) {
+	ratesView := rates.Group("/rates")
+	ratesView.Use(middleware.RequirePermission("rates:view"))
 	{
-		locRates.GET("", h.List)
+		ratesView.GET("", h.List)
 	}
 
-	locRatesWithManage := locations.Group("/:id/rates")
-	locRatesWithManage.Use(middleware.RequirePermission("rates:create"))
+	ratesCreate := rates.Group("/rates")
+	ratesCreate.Use(middleware.RequirePermission("rates:create"))
 	{
-		locRatesWithManage.POST("", h.Create)
+		ratesCreate.POST("", h.Create)
 	}
 
-	singleRate := rates.Group("/:id")
-	singleRate.Use(middleware.RequirePermission("rates:edit"))
+	ratesEdit := rates.Group("/rates")
+	ratesEdit.Use(middleware.RequirePermission("rates:edit"))
 	{
-		singleRate.PATCH("", h.Update)
+		ratesEdit.PATCH("/:id", h.Update)
 	}
 }
 
 func (h *Handler) Create(c *gin.Context) {
-	locationID := c.Param("id")
-
 	var req CreateRateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.BadRequest(c, "INVALID_INPUT", err.Error())
@@ -98,7 +97,7 @@ func (h *Handler) Create(c *gin.Context) {
 	}
 
 	rate, err := h.store.CreateRate(c.Request.Context(), store.CreateRateInput{
-		LocationID:           locationID,
+		LocationID:           req.LocationID,
 		VehicleType:          req.VehicleType,
 		FirstHourRate:        req.FirstHourRate,
 		SubsequentHourlyRate: req.SubsequentHourlyRate,
@@ -117,12 +116,12 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	h.logAudit(c, "rate.created", rate.ID, &locationID, gin.H{"vehicle_type": req.VehicleType, "effective_from": req.EffectiveFrom})
+	h.logAudit(c, "rate.created", rate.ID, &req.LocationID, gin.H{"vehicle_type": req.VehicleType, "effective_from": req.EffectiveFrom})
 	response.Created(c, rate)
 }
 
 func (h *Handler) List(c *gin.Context) {
-	locationID := c.Param("id")
+	locationID := c.Query("location_id")
 
 	rates, err := h.store.ListRatesByLocation(c.Request.Context(), locationID)
 	if err != nil {
