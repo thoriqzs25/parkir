@@ -56,7 +56,6 @@ var ValidPermissions = map[string]bool{
 	"locations:create":          true,
 	"locations:edit":            true,
 	"locations:deactivate":      true,
-	"locations:assign_operators": true,
 
 	// Rates
 	"rates:view":   true,

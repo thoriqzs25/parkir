@@ -151,29 +151,3 @@ func (s *Store) DeactivateLocation(ctx context.Context, id string) (*Location, e
 
 	return &loc, nil
 }
-
-func (s *Store) AssignOperatorToLocation(ctx context.Context, locationID, userID string) error {
-	_, err := s.pool.Exec(ctx, `
-		INSERT INTO user_role_locations (user_id, location_id)
-		VALUES ($1, $2)
-		ON CONFLICT DO NOTHING
-	`, userID, locationID)
-	if err != nil {
-		return fmt.Errorf("assign operator: %w", err)
-	}
-	return nil
-}
-
-func (s *Store) RemoveOperatorFromLocation(ctx context.Context, locationID, userID string) error {
-	result, err := s.pool.Exec(ctx, `
-		DELETE FROM user_role_locations
-		WHERE user_id = $1 AND location_id = $2
-	`, userID, locationID)
-	if err != nil {
-		return fmt.Errorf("remove operator: %w", err)
-	}
-	if result.RowsAffected() == 0 {
-		return errors.ErrNotFound
-	}
-	return nil
-}

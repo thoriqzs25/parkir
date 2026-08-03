@@ -32,10 +32,6 @@ type UpdateLocationRequest struct {
 	Capacity map[string]interface{} `json:"capacity,omitempty"`
 }
 
-type AssignOperatorRequest struct {
-	UserID string `json:"user_id" binding:"required,uuid"`
-}
-
 func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 	locations := r.Group("/locations")
 	locations.Use(middleware.RequirePermission("locations:view"))
@@ -57,12 +53,6 @@ func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 		locationsWithDeactivate.POST("/:id/deactivate", h.Deactivate)
 	}
 
-	locationsWithAssign := r.Group("/locations")
-	locationsWithAssign.Use(middleware.RequirePermission("locations:assign_operators"))
-	{
-		locationsWithAssign.POST("/:id/assign-operator", h.AssignOperator)
-		locationsWithAssign.POST("/:id/remove-operator", h.RemoveOperator)
-	}
 }
 
 func (h *Handler) Create(c *gin.Context) {
@@ -169,46 +159,6 @@ func (h *Handler) Deactivate(c *gin.Context) {
 
 	h.logAudit(c, "location.deactivated", loc.ID, &loc.ID, nil)
 	response.OK(c, loc)
-}
-
-func (h *Handler) AssignOperator(c *gin.Context) {
-	locationID := c.Param("id")
-
-	var req AssignOperatorRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "INVALID_INPUT", err.Error())
-		return
-	}
-
-	if err := h.store.AssignOperatorToLocation(c.Request.Context(), locationID, req.UserID); err != nil {
-		response.InternalServerError(c)
-		return
-	}
-
-	h.logAudit(c, "location.operator_assigned", locationID, &locationID, gin.H{"user_id": req.UserID})
-	response.NoContent(c)
-}
-
-func (h *Handler) RemoveOperator(c *gin.Context) {
-	locationID := c.Param("id")
-
-	var req AssignOperatorRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "INVALID_INPUT", err.Error())
-		return
-	}
-
-	if err := h.store.RemoveOperatorFromLocation(c.Request.Context(), locationID, req.UserID); err != nil {
-		if err == errors.ErrNotFound {
-			response.NotFound(c, "assignment")
-			return
-		}
-		response.InternalServerError(c)
-		return
-	}
-
-	h.logAudit(c, "location.operator_removed", locationID, &locationID, gin.H{"user_id": req.UserID})
-	response.NoContent(c)
 }
 
 func (h *Handler) logAudit(c *gin.Context, action, entityID string, locationID *string, metadata map[string]interface{}) {
