@@ -20,30 +20,13 @@ func TestOfflineSessionSync(t *testing.T) {
 	locationID := seedLocation(ctx, t, s)
 	operatorID := seedOperator(ctx, t, s)
 	seedRate(ctx, t, s, locationID, operatorID)
-	
-	// Create shift config and get shift instance
-	_, err := s.CreateLocationShiftConfig(ctx, store.CreateLocationShiftConfigInput{
-		LocationID:  locationID,
-		ShiftCode:   "08-16",
-		ShiftNumber: 1,
-		StartTime:   "08:00:00",
-		EndTime:     "16:00:00",
-	})
-	if err != nil {
-		t.Fatalf("create shift config: %v", err)
-	}
-	
-	shift, err := s.GetOrCreateShift(ctx, locationID, 1, time.Now())
-	if err != nil {
-		t.Fatalf("get or create shift: %v", err)
-	}
+	seedShiftConfig(ctx, t, s, locationID)
 
 	offlineSessionID := generateUUID()
 	session, err := s.CreateOfflineSession(ctx, store.CreateOfflineSessionInput{
 		ID:          offlineSessionID,
 		LocationID:  locationID,
 		OperatorID:  operatorID,
-		ShiftID:     shift.ID,
 		Plate:       "BOFFLINE1",
 		CityCode:    "B",
 		VehicleType: "CAR",
@@ -73,31 +56,15 @@ func TestOfflineSyncConflictDuplicatePlate(t *testing.T) {
 	locationID := seedLocation(ctx, t, s)
 	operatorID := seedOperator(ctx, t, s)
 	seedRate(ctx, t, s, locationID, operatorID)
-	
-	// Create shift config and get shift instance
-	_, err := s.CreateLocationShiftConfig(ctx, store.CreateLocationShiftConfigInput{
-		LocationID:  locationID,
-		ShiftCode:   "08-16",
-		ShiftNumber: 1,
-		StartTime:   "08:00:00",
-		EndTime:     "16:00:00",
-	})
-	if err != nil {
-		t.Fatalf("create shift config: %v", err)
-	}
-	
-	shift, err := s.GetOrCreateShift(ctx, locationID, 1, time.Now())
-	if err != nil {
-		t.Fatalf("get or create shift: %v", err)
-	}
+	seedShiftConfig(ctx, t, s, locationID)
 
 	plate := "BCONFLICT1"
 
 	// Online session checked in first.
-	_, err = s.CreateSession(ctx, store.CreateSessionInput{
+	_, err := s.CreateSession(ctx, store.CreateSessionInput{
 		LocationID:  locationID,
 		OperatorID:  operatorID,
-		ShiftID:     shift.ID,
+		ShiftNumber: 1,
 		Plate:       plate,
 		CityCode:    "B",
 		VehicleType: "CAR",
@@ -111,7 +78,6 @@ func TestOfflineSyncConflictDuplicatePlate(t *testing.T) {
 		ID:          generateUUID(),
 		LocationID:  locationID,
 		OperatorID:  operatorID,
-		ShiftID:     shift.ID,
 		Plate:       plate,
 		CityCode:    "B",
 		VehicleType: "CAR",
@@ -146,30 +112,13 @@ func TestOfflinePaymentSync(t *testing.T) {
 	locationID := seedLocation(ctx, t, s)
 	operatorID := seedOperator(ctx, t, s)
 	seedRate(ctx, t, s, locationID, operatorID)
-	
-	// Create shift config and get shift instance
-	_, err := s.CreateLocationShiftConfig(ctx, store.CreateLocationShiftConfigInput{
-		LocationID:  locationID,
-		ShiftCode:   "08-16",
-		ShiftNumber: 1,
-		StartTime:   "08:00:00",
-		EndTime:     "16:00:00",
-	})
-	if err != nil {
-		t.Fatalf("create shift config: %v", err)
-	}
-	
-	shift, err := s.GetOrCreateShift(ctx, locationID, 1, time.Now())
-	if err != nil {
-		t.Fatalf("get or create shift: %v", err)
-	}
+	seedShiftConfig(ctx, t, s, locationID)
 
 	sessionID := generateUUID()
-	_, err = s.CreateOfflineSession(ctx, store.CreateOfflineSessionInput{
+	_, err := s.CreateOfflineSession(ctx, store.CreateOfflineSessionInput{
 		ID:          sessionID,
 		LocationID:  locationID,
 		OperatorID:  operatorID,
-		ShiftID:     shift.ID,
 		Plate:       "BOFFPAY1",
 		CityCode:    "B",
 		VehicleType: "CAR",
@@ -201,13 +150,12 @@ func TestOfflinePaymentSync(t *testing.T) {
 	amountTendered := 10000.0
 	change := 2000.0
 	tx, err := s.CreateOfflineTransaction(ctx, store.CreateOfflineTransactionInput{
-		ID:            generateUUID(),
-		SessionID:     sessionID,
-		ShiftID:       shift.ID,
-		OperatorID:    operatorID,
-		DurationHours: 2,
-		FeeAmount:     fee,
-		PaymentMethod: "CASH",
+		ID:             generateUUID(),
+		SessionID:      sessionID,
+		OperatorID:     operatorID,
+		DurationHours:  2,
+		FeeAmount:      fee,
+		PaymentMethod:  "CASH",
 		AmountTendered: &amountTendered,
 		ChangeAmount:   &change,
 		ReceiptNumber:  receiptNumber,
@@ -239,29 +187,13 @@ func TestResolveSyncConflictVoidOffline(t *testing.T) {
 	operatorID := seedOperator(ctx, t, s)
 	managerID := seedOperator(ctx, t, s)
 	seedRate(ctx, t, s, locationID, operatorID)
-	
-	// Create shift config and get shift instance
-	_, err := s.CreateLocationShiftConfig(ctx, store.CreateLocationShiftConfigInput{
-		LocationID:  locationID,
-		ShiftCode:   "08-16",
-		ShiftNumber: 1,
-		StartTime:   "08:00:00",
-		EndTime:     "16:00:00",
-	})
-	if err != nil {
-		t.Fatalf("create shift config: %v", err)
-	}
-	
-	shift, err := s.GetOrCreateShift(ctx, locationID, 1, time.Now())
-	if err != nil {
-		t.Fatalf("get or create shift: %v", err)
-	}
+	seedShiftConfig(ctx, t, s, locationID)
 
 	plate := "BRESOLVE1"
-	_, err = s.CreateSession(ctx, store.CreateSessionInput{
+	_, err := s.CreateSession(ctx, store.CreateSessionInput{
 		LocationID:  locationID,
 		OperatorID:  operatorID,
-		ShiftID:     shift.ID,
+		ShiftNumber: 1,
 		Plate:       plate,
 		CityCode:    "B",
 		VehicleType: "CAR",
@@ -274,7 +206,6 @@ func TestResolveSyncConflictVoidOffline(t *testing.T) {
 		ID:          generateUUID(),
 		LocationID:  locationID,
 		OperatorID:  operatorID,
-		ShiftID:     shift.ID,
 		Plate:       plate,
 		CityCode:    "B",
 		VehicleType: "CAR",
@@ -338,7 +269,7 @@ func ensureOperatorRole(ctx context.Context, t *testing.T, s *store.Store) strin
 		VALUES ('operator', $1)
 		ON CONFLICT (name) DO UPDATE SET permissions = EXCLUDED.permissions
 		RETURNING id
-	`, []string{"sessions:*", "payments:*", "shifts:*"}).Scan(&id)
+	`, []string{"sessions:*", "payments:*", "shift-configs:*"}).Scan(&id)
 	if err != nil {
 		t.Fatalf("ensure operator role: %v", err)
 	}
@@ -359,6 +290,17 @@ func seedRate(ctx context.Context, t *testing.T, s *store.Store, locationID, cre
 	if err != nil {
 		t.Fatalf("create rate: %v", err)
 	}
+}
+
+func seedShiftConfig(ctx context.Context, t *testing.T, s *store.Store, locationID string) {
+	t.Helper()
+	_, _ = s.CreateLocationShiftConfig(ctx, store.CreateLocationShiftConfigInput{
+		LocationID:  locationID,
+		ShiftCode:   "08-16",
+		ShiftNumber: 1,
+		StartTime:   "08:00:00",
+		EndTime:     "16:00:00",
+	})
 }
 
 var testUUIDCounter int

@@ -91,24 +91,6 @@ func (h *Handler) CheckIn(c *gin.Context) {
 		return
 	}
 
-	// Determine shift date (today, unless overnight shift and current time is before end_time)
-	shiftDate := time.Date(checkInAt.Year(), checkInAt.Month(), checkInAt.Day(), 0, 0, 0, 0, checkInAt.Location())
-	if shiftConfig.IsOvernight {
-		endTime, _ := time.Parse("15:04:05", shiftConfig.EndTime)
-		if checkInAt.Hour() < endTime.Hour() || (checkInAt.Hour() == endTime.Hour() && checkInAt.Minute() < endTime.Minute()) {
-			// Current time is in the "next day" part of overnight shift
-			shiftDate = shiftDate.AddDate(0, 0, -1)
-		}
-	}
-
-	// Get or create shift instance
-	shift, err := h.store.GetOrCreateShift(ctx, req.LocationID, shiftConfig.ShiftNumber, shiftDate)
-	if err != nil {
-		_ = c.Error(err)
-		response.InternalServerError(c)
-		return
-	}
-
 	plate := normalizePlate(req.Plate)
 
 	duplicate := false
@@ -120,7 +102,7 @@ func (h *Handler) CheckIn(c *gin.Context) {
 	session, err := h.store.CreateSession(ctx, store.CreateSessionInput{
 		LocationID:  req.LocationID,
 		OperatorID:  operatorID,
-		ShiftID:     shift.ID,
+		ShiftNumber: shiftConfig.ShiftNumber,
 		Plate:       plate,
 		CityCode:    strings.ToUpper(strings.TrimSpace(req.CityCode)),
 		VehicleType: req.VehicleType,
@@ -132,11 +114,9 @@ func (h *Handler) CheckIn(c *gin.Context) {
 	}
 
 	h.logAudit(c, "session.check_in", session.ID, &req.LocationID, gin.H{
-		"plate":         plate,
-		"vehicle_type":  req.VehicleType,
-		"shift_id":      shift.ID,
-		"shift_number":  shift.ShiftNumber,
-		"shift_date":    shift.ShiftDate,
+		"plate":        plate,
+		"vehicle_type": req.VehicleType,
+		"shift_number": shiftConfig.ShiftNumber,
 	})
 
 	response.Created(c, SessionResponse{Session: *session, DuplicatePlate: duplicate})

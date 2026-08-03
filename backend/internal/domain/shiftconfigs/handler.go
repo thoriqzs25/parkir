@@ -31,13 +31,29 @@ type UpdateShiftConfigRequest struct {
 }
 
 func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
-	configs := r.Group("/locations/:id/shift-configs")
-	configs.Use(middleware.RequirePermission("shifts:manage"))
+	configsView := r.Group("/locations/:id/shift-configs")
+	configsView.Use(middleware.RequirePermission("shift-configs:view"))
 	{
-		configs.GET("", h.List)
-		configs.POST("", h.Create)
-		configs.PUT("/:code", h.Update)
-		configs.DELETE("/:code", h.Delete)
+		configsView.GET("", h.List)
+		configsView.GET("/:code", h.Get)
+	}
+
+	configsCreate := r.Group("/locations/:id/shift-configs")
+	configsCreate.Use(middleware.RequirePermission("shift-configs:create"))
+	{
+		configsCreate.POST("", h.Create)
+	}
+
+	configsEdit := r.Group("/locations/:id/shift-configs")
+	configsEdit.Use(middleware.RequirePermission("shift-configs:edit"))
+	{
+		configsEdit.PUT("/:code", h.Update)
+	}
+
+	configsDelete := r.Group("/locations/:id/shift-configs")
+	configsDelete.Use(middleware.RequirePermission("shift-configs:delete"))
+	{
+		configsDelete.DELETE("/:code", h.Delete)
 	}
 }
 
@@ -55,6 +71,24 @@ func (h *Handler) List(c *gin.Context) {
 		"items": configs,
 		"meta":  response.Meta{Limit: len(configs), Offset: 0, Total: len(configs)},
 	})
+}
+
+func (h *Handler) Get(c *gin.Context) {
+	locationID := c.Param("id")
+	code := c.Param("code")
+
+	config, err := h.store.GetLocationShiftConfigByCode(c.Request.Context(), locationID, code)
+	if err != nil {
+		if err == errors.ErrNotFound {
+			response.NotFound(c, "shift config")
+			return
+		}
+		_ = c.Error(err)
+		response.InternalServerError(c)
+		return
+	}
+
+	response.OK(c, config)
 }
 
 func (h *Handler) Create(c *gin.Context) {

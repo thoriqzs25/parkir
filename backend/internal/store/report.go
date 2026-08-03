@@ -173,16 +173,15 @@ func (s *Store) ReportOperatorActivity(ctx context.Context, locationID string, d
 			COALESCE(u.name, 'Unknown') AS operator_name,
 			COUNT(DISTINCT t.session_id)::int AS session_count,
 			COALESCE(SUM(t.fee_amount), 0) AS total_revenue,
-			COALESCE(EXTRACT(EPOCH FROM (sh.ended_at - sh.started_at)) / 3600, 0) AS shift_hours
+			0 AS shift_hours
 		FROM transactions t
 		JOIN users u ON u.id = t.operator_id
-		LEFT JOIN shifts sh ON sh.id = t.shift_id AND sh.operator_id = t.operator_id
 		WHERE t.location_id = $1
 		  AND t.created_at::date >= $2::date
 		  AND t.created_at::date <= $3::date
 		  AND t.voided = false
 		  %s
-		GROUP BY t.operator_id, u.name, sh.ended_at, sh.started_at
+		GROUP BY t.operator_id, u.name
 		ORDER BY total_revenue DESC
 	`, whereExtra)
 
@@ -197,6 +196,47 @@ func (s *Store) ReportOperatorActivity(ctx context.Context, locationID string, d
 		var r OperatorActivityRow
 		if err := rows.Scan(&r.OperatorID, &r.OperatorName, &r.SessionCount, &r.TotalRevenue, &r.ShiftHours); err != nil {
 			return nil, fmt.Errorf("scan operator activity: %w", err)
+		}
+		results = append(results, r)
+	}
+	return results, rows.Err()
+}
+
+type ShiftSummaryRow struct {
+	ShiftNumber   int     `json:"shift_number"`
+	SessionCount  int     `json:"session_count"`
+	VoidCount     int     `json:"void_count"`
+	TotalRevenue  float64 `json:"total_revenue"`
+	CashRevenue   float64 `json:"cash_revenue"`
+	DigitalRevenue float64 `json:"digital_revenue"`
+}
+
+func (s *Store) ReportShiftSummary(ctx context.Context, locationID string, dateFrom, dateTo time.Time) ([]ShiftSummaryRow, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT
+			COALESCE(t.shift_number, 0)::int AS shift_number,
+			COUNT(*)::int AS session_count,
+			COUNT(*) FILTER (WHERE t.voided = true)::int AS void_count,
+			COALESCE(SUM(t.fee_amount) FILTER (WHERE t.voided = false), 0)::float AS total_revenue,
+			COALESCE(SUM(t.fee_amount) FILTER (WHERE t.voided = false AND t.payment_method = 'CASH'), 0)::float AS cash_revenue,
+			COALESCE(SUM(t.fee_amount) FILTER (WHERE t.voided = false AND t.payment_method = 'DIGITAL'), 0)::float AS digital_revenue
+		FROM transactions t
+		WHERE t.location_id = $1
+		  AND t.created_at >= $2
+		  AND t.created_at <= $3
+		GROUP BY t.shift_number
+		ORDER BY t.shift_number ASC
+	`, locationID, dateFrom, dateTo)
+	if err != nil {
+		return nil, fmt.Errorf("report shift summary: %w", err)
+	}
+	defer rows.Close()
+
+	var results []ShiftSummaryRow
+	for rows.Next() {
+		var r ShiftSummaryRow
+		if err := rows.Scan(&r.ShiftNumber, &r.SessionCount, &r.VoidCount, &r.TotalRevenue, &r.CashRevenue, &r.DigitalRevenue); err != nil {
+			return nil, fmt.Errorf("scan shift summary: %w", err)
 		}
 		results = append(results, r)
 	}

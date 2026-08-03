@@ -23,18 +23,12 @@ func TestFullParkingFlow(t *testing.T) {
 	operatorID := seedOperator(ctx, t, s)
 	seedRate(ctx, t, s, locationID, operatorID)
 	seedShiftConfig(ctx, t, s, locationID)
-	
-	// Get or create shift instance
-	shift, err := s.GetOrCreateShift(ctx, locationID, 1, time.Now())
-	if err != nil {
-		t.Fatalf("get or create shift: %v", err)
-	}
 
-	// Check in.
+	// Check in with shift number 1.
 	session, err := s.CreateSession(ctx, store.CreateSessionInput{
 		LocationID:  locationID,
 		OperatorID:  operatorID,
-		ShiftID:     shift.ID,
+		ShiftNumber: 1,
 		Plate:       "B1234XYZ",
 		CityCode:    "B",
 		VehicleType: "CAR",
@@ -74,7 +68,7 @@ func TestFullParkingFlow(t *testing.T) {
 	transaction, err := s.CreateTransaction(ctx, store.CreateTransactionInput{
 		SessionID:            session.ID,
 		LocationID:           locationID,
-		ShiftID:              shift.ID,
+		ShiftNumber:          1,
 		OperatorID:           operatorID,
 		VehicleType:          "CAR",
 		Plate:                session.Plate,
@@ -122,16 +116,11 @@ func TestManualFeeOverrideWhenNoRate(t *testing.T) {
 	operatorID := seedOperator(ctx, t, s)
 	// No rate is seeded.
 	seedShiftConfig(ctx, t, s, locationID)
-	
-	shift, err := s.GetOrCreateShift(ctx, locationID, 1, time.Now())
-	if err != nil {
-		t.Fatalf("get or create shift: %v", err)
-	}
 
 	session, err := s.CreateSession(ctx, store.CreateSessionInput{
 		LocationID:  locationID,
 		OperatorID:  operatorID,
-		ShiftID:     shift.ID,
+		ShiftNumber: 1,
 		Plate:       "B9999ZZZ",
 		CityCode:    "B",
 		VehicleType: "CAR",
@@ -165,19 +154,14 @@ func TestDuplicatePlateDetection(t *testing.T) {
 	operatorID := seedOperator(ctx, t, s)
 	seedRate(ctx, t, s, locationID, operatorID)
 	seedShiftConfig(ctx, t, s, locationID)
-	
-	shift, err := s.GetOrCreateShift(ctx, locationID, 1, time.Now())
-	if err != nil {
-		t.Fatalf("get or create shift: %v", err)
-	}
 
 	plate := "B7777XYZ"
 
 	// First check-in.
-	_, err = s.CreateSession(ctx, store.CreateSessionInput{
+	_, err := s.CreateSession(ctx, store.CreateSessionInput{
 		LocationID:  locationID,
 		OperatorID:  operatorID,
-		ShiftID:     shift.ID,
+		ShiftNumber: 1,
 		Plate:       plate,
 		CityCode:    "B",
 		VehicleType: "CAR",
@@ -190,7 +174,7 @@ func TestDuplicatePlateDetection(t *testing.T) {
 	_, err = s.CreateSession(ctx, store.CreateSessionInput{
 		LocationID:  locationID,
 		OperatorID:  operatorID,
-		ShiftID:     shift.ID,
+		ShiftNumber: 1,
 		Plate:       plate,
 		CityCode:    "B",
 		VehicleType: "CAR",
@@ -214,9 +198,6 @@ func TestCheckInWithDifferentLocation(t *testing.T) {
 	seedRate(ctx, t, s, location2, operatorID)
 	seedShiftConfig(ctx, t, s, location1)
 	seedShiftConfig(ctx, t, s, location2)
-	
-	shift1, _ := s.GetOrCreateShift(ctx, location1, 1, time.Now())
-	shift2, _ := s.GetOrCreateShift(ctx, location2, 1, time.Now())
 
 	plate := "B5555ABC"
 
@@ -224,7 +205,7 @@ func TestCheckInWithDifferentLocation(t *testing.T) {
 	_, err := s.CreateSession(ctx, store.CreateSessionInput{
 		LocationID:  location1,
 		OperatorID:  operatorID,
-		ShiftID:     shift1.ID,
+		ShiftNumber: 1,
 		Plate:       plate,
 		CityCode:    "B",
 		VehicleType: "MOTO",
@@ -237,7 +218,7 @@ func TestCheckInWithDifferentLocation(t *testing.T) {
 	_, err = s.CreateSession(ctx, store.CreateSessionInput{
 		LocationID:  location2,
 		OperatorID:  operatorID,
-		ShiftID:     shift2.ID,
+		ShiftNumber: 1,
 		Plate:       plate,
 		CityCode:    "B",
 		VehicleType: "MOTO",
@@ -262,7 +243,6 @@ func seedLocation(ctx context.Context, t *testing.T, s *store.Store) string {
 	if err != nil {
 		t.Fatalf("create location: %v", err)
 	}
-	// Shift configs are auto-created with location
 	return loc.ID
 }
 
@@ -289,7 +269,7 @@ func ensureOperatorRole(ctx context.Context, t *testing.T, s *store.Store) strin
 		VALUES ('operator', $1)
 		ON CONFLICT (name) DO UPDATE SET permissions = EXCLUDED.permissions
 		RETURNING id
-	`, []string{"sessions:*", "payments:*", "shifts:*"}).Scan(&id)
+	`, []string{"sessions:*", "payments:*", "shift-configs:*"}).Scan(&id)
 	if err != nil {
 		t.Fatalf("ensure operator role: %v", err)
 	}

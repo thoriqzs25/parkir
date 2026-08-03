@@ -14,7 +14,6 @@ type CreateOfflineSessionInput struct {
 	ID          string
 	LocationID  string
 	OperatorID  string
-	ShiftID     string
 	Plate       string
 	CityCode    string
 	VehicleType string
@@ -43,19 +42,25 @@ func (s *Store) CreateOfflineSession(ctx context.Context, input CreateOfflineSes
 		return nil, fmt.Errorf("check duplicate plate: %w", dupErr)
 	}
 
+	// Determine shift number from check-in time
+	shiftConfig, err := s.GetShiftConfigByTimeWithFallback(ctx, input.LocationID, input.CheckInAt)
+	if err != nil {
+		return nil, fmt.Errorf("determine shift for offline session: %w", err)
+	}
+
 	var session Session
 	err = s.pool.QueryRow(ctx, `
 		INSERT INTO sessions (
-			id, location_id, operator_id, shift_id, plate, city_code, vehicle_type,
+			id, location_id, operator_id, shift_number, plate, city_code, vehicle_type,
 			state, check_in_at, offline_sync, sync_conflict
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, 'ACTIVE', $8, true, $9)
-		RETURNING id, location_id, operator_id, shift_id, plate, city_code, vehicle_type, state,
+		RETURNING id, location_id, operator_id, shift_number, plate, city_code, vehicle_type, state,
 		          check_in_at, check_out_at, fee_amount, rate_snapshot, offline_sync, sync_conflict,
 		          created_at, updated_at
-	`, input.ID, input.LocationID, input.OperatorID, input.ShiftID, input.Plate,
+	`, input.ID, input.LocationID, input.OperatorID, shiftConfig.ShiftNumber, input.Plate,
 		input.CityCode, input.VehicleType, input.CheckInAt, conflict).Scan(
-		&session.ID, &session.LocationID, &session.OperatorID, &session.ShiftID, &session.Plate, &session.CityCode,
+		&session.ID, &session.LocationID, &session.OperatorID, &session.ShiftNumber, &session.Plate, &session.CityCode,
 		&session.VehicleType, &session.State, &session.CheckInAt, &session.CheckOutAt, &session.FeeAmount,
 		&session.RateSnapshot, &session.OfflineSync, &session.SyncConflict, &session.CreatedAt, &session.UpdatedAt,
 	)
@@ -69,7 +74,6 @@ func (s *Store) CreateOfflineSession(ctx context.Context, input CreateOfflineSes
 type CreateOfflineTransactionInput struct {
 	ID                   string
 	SessionID            string
-	ShiftID              string
 	OperatorID           string
 	DurationHours        int
 	RateFirstHour        float64
@@ -104,25 +108,30 @@ func (s *Store) CreateOfflineTransaction(ctx context.Context, input CreateOfflin
 		return nil, errors.ErrInvalidState
 	}
 
+	var shiftNumber int
+	if session.ShiftNumber != nil {
+		shiftNumber = *session.ShiftNumber
+	}
+
 	var tx Transaction
 	err = s.pool.QueryRow(ctx, `
 		INSERT INTO transactions (
-			id, session_id, location_id, shift_id, operator_id, vehicle_type, plate,
+			id, session_id, location_id, shift_number, operator_id, vehicle_type, plate,
 			check_in_at, check_out_at, duration_hours,
 			rate_first_hour, rate_subsequent_hourly, rate_daily, fee_amount,
 			payment_method, amount_tendered, change_amount, payment_reference, receipt_number
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-		RETURNING id, session_id, location_id, shift_id, operator_id, vehicle_type, plate,
+		RETURNING id, session_id, location_id, shift_number, operator_id, vehicle_type, plate,
 		          check_in_at, check_out_at, duration_hours,
 		          rate_first_hour, rate_subsequent_hourly, rate_daily, fee_amount,
 		          payment_method, amount_tendered, change_amount, payment_reference, receipt_number,
 		          voided, voided_at, voided_by, void_reason, created_at, updated_at
-	`, input.ID, session.ID, session.LocationID, input.ShiftID, input.OperatorID,
+	`, input.ID, session.ID, session.LocationID, shiftNumber, input.OperatorID,
 		session.VehicleType, session.Plate, session.CheckInAt, *session.CheckOutAt, input.DurationHours,
 		input.RateFirstHour, input.RateSubsequentHourly, input.RateDaily, input.FeeAmount,
 		input.PaymentMethod, input.AmountTendered, input.ChangeAmount, input.PaymentReference, input.ReceiptNumber).Scan(
-		&tx.ID, &tx.SessionID, &tx.LocationID, &tx.ShiftID, &tx.OperatorID, &tx.VehicleType, &tx.Plate,
+		&tx.ID, &tx.SessionID, &tx.LocationID, &tx.ShiftNumber, &tx.OperatorID, &tx.VehicleType, &tx.Plate,
 		&tx.CheckInAt, &tx.CheckOutAt, &tx.DurationHours,
 		&tx.RateFirstHour, &tx.RateSubsequentHourly, &tx.RateDaily, &tx.FeeAmount,
 		&tx.PaymentMethod, &tx.AmountTendered, &tx.ChangeAmount, &tx.PaymentReference, &tx.ReceiptNumber,
@@ -166,7 +175,7 @@ func (s *Store) ListSyncConflicts(ctx context.Context, filters ListSyncConflicts
 		return nil, 0, fmt.Errorf("count sync conflicts: %w", err)
 	}
 
-	query := "SELECT id, location_id, operator_id, shift_id, plate, city_code, vehicle_type, state, " +
+	query := "SELECT id, location_id, operator_id, shift_number, plate, city_code, vehicle_type, state, " +
 		"check_in_at, check_out_at, fee_amount, rate_snapshot, offline_sync, sync_conflict, " +
 		"created_at, updated_at FROM sessions " + where +
 		fmt.Sprintf(" ORDER BY check_in_at DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
@@ -182,7 +191,7 @@ func (s *Store) ListSyncConflicts(ctx context.Context, filters ListSyncConflicts
 	for rows.Next() {
 		var session Session
 		if err := rows.Scan(
-			&session.ID, &session.LocationID, &session.OperatorID, &session.ShiftID, &session.Plate, &session.CityCode,
+			&session.ID, &session.LocationID, &session.OperatorID, &session.ShiftNumber, &session.Plate, &session.CityCode,
 			&session.VehicleType, &session.State, &session.CheckInAt, &session.CheckOutAt, &session.FeeAmount,
 			&session.RateSnapshot, &session.OfflineSync, &session.SyncConflict, &session.CreatedAt, &session.UpdatedAt,
 		); err != nil {
@@ -240,11 +249,11 @@ func (s *Store) ResolveSyncConflict(ctx context.Context, input ResolveSyncConfli
 			SET sync_conflict = false,
 			    updated_at = now()
 			WHERE id = $1
-			RETURNING id, location_id, operator_id, shift_id, plate, city_code, vehicle_type, state,
+			RETURNING id, location_id, operator_id, shift_number, plate, city_code, vehicle_type, state,
 			          check_in_at, check_out_at, fee_amount, rate_snapshot, offline_sync, sync_conflict,
 			          created_at, updated_at
 		`, session.ID).Scan(
-			&updated.ID, &updated.LocationID, &updated.OperatorID, &updated.ShiftID, &updated.Plate, &updated.CityCode,
+			&updated.ID, &updated.LocationID, &updated.OperatorID, &updated.ShiftNumber, &updated.Plate, &updated.CityCode,
 			&updated.VehicleType, &updated.State, &updated.CheckInAt, &updated.CheckOutAt, &updated.FeeAmount,
 			&updated.RateSnapshot, &updated.OfflineSync, &updated.SyncConflict, &updated.CreatedAt, &updated.UpdatedAt,
 		)
@@ -267,11 +276,11 @@ func (s *Store) MarkSessionSyncConflict(ctx context.Context, sessionID string, c
 		SET sync_conflict = $2,
 		    updated_at = now()
 		WHERE id = $1
-		RETURNING id, location_id, operator_id, shift_id, plate, city_code, vehicle_type, state,
+		RETURNING id, location_id, operator_id, shift_number, plate, city_code, vehicle_type, state,
 		          check_in_at, check_out_at, fee_amount, rate_snapshot, offline_sync, sync_conflict,
 		          created_at, updated_at
 	`, sessionID, conflict).Scan(
-		&session.ID, &session.LocationID, &session.OperatorID, &session.ShiftID, &session.Plate, &session.CityCode,
+		&session.ID, &session.LocationID, &session.OperatorID, &session.ShiftNumber, &session.Plate, &session.CityCode,
 		&session.VehicleType, &session.State, &session.CheckInAt, &session.CheckOutAt, &session.FeeAmount,
 		&session.RateSnapshot, &session.OfflineSync, &session.SyncConflict, &session.CreatedAt, &session.UpdatedAt,
 	)

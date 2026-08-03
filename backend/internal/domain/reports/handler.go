@@ -27,6 +27,7 @@ func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 		reports.GET("/occupancy", middleware.RequirePermission("reports:view_occupancy"), h.Occupancy)
 		reports.GET("/vehicle-breakdown", middleware.RequirePermission("reports:view_revenue"), h.VehicleBreakdown)
 		reports.GET("/operator-activity", middleware.RequirePermission("reports:view_operators"), h.OperatorActivity)
+		reports.GET("/shift-summary", middleware.RequirePermission("reports:view_revenue"), h.ShiftSummary)
 	}
 }
 
@@ -227,4 +228,25 @@ func (h *Handler) exportOperatorActivityCSV(c *gin.Context, rows []store.Operato
 		})
 	}
 	w.Flush()
+}
+
+func (h *Handler) ShiftSummary(c *gin.Context) {
+	locationID := c.Query("location_id")
+	if locationID == "" {
+		response.BadRequest(c, "MISSING_LOCATION", "location_id is required")
+		return
+	}
+	dr := h.parseDateRange(c)
+
+	data, err := h.store.ReportShiftSummary(c.Request.Context(), locationID, dr.DateFrom, dr.DateTo)
+	if err != nil {
+		_ = c.Error(err)
+		response.InternalServerError(c)
+		return
+	}
+
+	response.OK(c, gin.H{
+		"items": data,
+		"meta":  response.Meta{Limit: len(data), Offset: 0, Total: len(data)},
+	})
 }

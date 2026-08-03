@@ -26,7 +26,6 @@ var ValidPermissions = map[string]bool{
 
 	// Adjustments
 	"adjustments:void_transaction":  true,
-	"adjustments:reassign_session":  true,
 
 	// Incidents
 	"incidents:view":    true,
@@ -80,12 +79,11 @@ var ValidPermissions = map[string]bool{
 	"vehicle-types:edit":   true,
 	"vehicle-types:delete": true,
 
-	// Shifts
-	"shifts:start":               true,
-	"shifts:end":                 true,
-	"shifts:view":                true,
-	"shifts:force_close":         true,
-	"shifts:resolve_discrepancy": true,
+	// Shift configs (templates)
+	"shift-configs:view":   true,
+	"shift-configs:create": true,
+	"shift-configs:edit":   true,
+	"shift-configs:delete": true,
 }
 
 // IsValid checks if a permission string is in the allow-list.

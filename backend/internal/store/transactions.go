@@ -13,7 +13,7 @@ type Transaction struct {
 	ID                   string     `json:"id"`
 	SessionID            string     `json:"session_id"`
 	LocationID           string     `json:"location_id"`
-	ShiftID              string     `json:"shift_id"`
+	ShiftNumber          *int       `json:"shift_number,omitempty"`
 	OperatorID           string     `json:"operator_id"`
 	VehicleType          string     `json:"vehicle_type"`
 	Plate                string     `json:"plate"`
@@ -40,7 +40,7 @@ type Transaction struct {
 type CreateTransactionInput struct {
 	SessionID            string
 	LocationID           string
-	ShiftID              string
+	ShiftNumber          int
 	OperatorID           string
 	VehicleType          string
 	Plate                string
@@ -59,33 +59,33 @@ type CreateTransactionInput struct {
 }
 
 type ListTransactionsFilters struct {
-	LocationID string
-	ShiftID    string
-	Voided     *bool
-	DateFrom   *time.Time
-	DateTo     *time.Time
+	LocationID  string
+	ShiftNumber *int
+	Voided      *bool
+	DateFrom    *time.Time
+	DateTo      *time.Time
 }
 
 func (s *Store) CreateTransaction(ctx context.Context, input CreateTransactionInput) (*Transaction, error) {
 	var tx Transaction
 	err := s.pool.QueryRow(ctx, `
 		INSERT INTO transactions (
-			session_id, location_id, shift_id, operator_id, vehicle_type, plate,
+			session_id, location_id, shift_number, operator_id, vehicle_type, plate,
 			check_in_at, check_out_at, duration_hours,
 			rate_first_hour, rate_subsequent_hourly, rate_daily, fee_amount,
 			payment_method, amount_tendered, change_amount, payment_reference, receipt_number
 		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
-		RETURNING id, session_id, location_id, shift_id, operator_id, vehicle_type, plate,
+		RETURNING id, session_id, location_id, shift_number, operator_id, vehicle_type, plate,
 		          check_in_at, check_out_at, duration_hours,
 		          rate_first_hour, rate_subsequent_hourly, rate_daily, fee_amount,
 		          payment_method, amount_tendered, change_amount, payment_reference, receipt_number,
 		          voided, voided_at, voided_by, void_reason, created_at, updated_at
-	`, input.SessionID, input.LocationID, input.ShiftID, input.OperatorID, input.VehicleType, input.Plate,
+	`, input.SessionID, input.LocationID, input.ShiftNumber, input.OperatorID, input.VehicleType, input.Plate,
 		input.CheckInAt, input.CheckOutAt, input.DurationHours,
 		input.RateFirstHour, input.RateSubsequentHourly, input.RateDaily, input.FeeAmount,
 		input.PaymentMethod, input.AmountTendered, input.ChangeAmount, input.PaymentReference, input.ReceiptNumber).Scan(
-		&tx.ID, &tx.SessionID, &tx.LocationID, &tx.ShiftID, &tx.OperatorID, &tx.VehicleType, &tx.Plate,
+		&tx.ID, &tx.SessionID, &tx.LocationID, &tx.ShiftNumber, &tx.OperatorID, &tx.VehicleType, &tx.Plate,
 		&tx.CheckInAt, &tx.CheckOutAt, &tx.DurationHours,
 		&tx.RateFirstHour, &tx.RateSubsequentHourly, &tx.RateDaily, &tx.FeeAmount,
 		&tx.PaymentMethod, &tx.AmountTendered, &tx.ChangeAmount, &tx.PaymentReference, &tx.ReceiptNumber,
@@ -100,7 +100,7 @@ func (s *Store) CreateTransaction(ctx context.Context, input CreateTransactionIn
 func (s *Store) GetTransactionByID(ctx context.Context, id string) (*Transaction, error) {
 	var tx Transaction
 	err := s.pool.QueryRow(ctx, `
-		SELECT id, session_id, location_id, shift_id, operator_id, vehicle_type, plate,
+		SELECT id, session_id, location_id, shift_number, operator_id, vehicle_type, plate,
 		       check_in_at, check_out_at, duration_hours,
 		       rate_first_hour, rate_subsequent_hourly, rate_daily, fee_amount,
 		       payment_method, amount_tendered, change_amount, payment_reference, receipt_number,
@@ -108,7 +108,7 @@ func (s *Store) GetTransactionByID(ctx context.Context, id string) (*Transaction
 		FROM transactions
 		WHERE id = $1
 	`, id).Scan(
-		&tx.ID, &tx.SessionID, &tx.LocationID, &tx.ShiftID, &tx.OperatorID, &tx.VehicleType, &tx.Plate,
+		&tx.ID, &tx.SessionID, &tx.LocationID, &tx.ShiftNumber, &tx.OperatorID, &tx.VehicleType, &tx.Plate,
 		&tx.CheckInAt, &tx.CheckOutAt, &tx.DurationHours,
 		&tx.RateFirstHour, &tx.RateSubsequentHourly, &tx.RateDaily, &tx.FeeAmount,
 		&tx.PaymentMethod, &tx.AmountTendered, &tx.ChangeAmount, &tx.PaymentReference, &tx.ReceiptNumber,
@@ -133,13 +133,13 @@ func (s *Store) VoidTransaction(ctx context.Context, id, voidedBy, reason string
 		    void_reason = $3,
 		    updated_at = now()
 		WHERE id = $1 AND voided = false
-		RETURNING id, session_id, location_id, shift_id, operator_id, vehicle_type, plate,
+		RETURNING id, session_id, location_id, shift_number, operator_id, vehicle_type, plate,
 		          check_in_at, check_out_at, duration_hours,
 		          rate_first_hour, rate_subsequent_hourly, rate_daily, fee_amount,
 		          payment_method, amount_tendered, change_amount, payment_reference, receipt_number,
 		          voided, voided_at, voided_by, void_reason, created_at, updated_at
 	`, id, voidedBy, reason).Scan(
-		&tx.ID, &tx.SessionID, &tx.LocationID, &tx.ShiftID, &tx.OperatorID, &tx.VehicleType, &tx.Plate,
+		&tx.ID, &tx.SessionID, &tx.LocationID, &tx.ShiftNumber, &tx.OperatorID, &tx.VehicleType, &tx.Plate,
 		&tx.CheckInAt, &tx.CheckOutAt, &tx.DurationHours,
 		&tx.RateFirstHour, &tx.RateSubsequentHourly, &tx.RateDaily, &tx.FeeAmount,
 		&tx.PaymentMethod, &tx.AmountTendered, &tx.ChangeAmount, &tx.PaymentReference, &tx.ReceiptNumber,
@@ -164,9 +164,9 @@ func (s *Store) ListTransactions(ctx context.Context, filters ListTransactionsFi
 		args = append(args, filters.LocationID)
 		argIdx++
 	}
-	if filters.ShiftID != "" {
-		where += fmt.Sprintf(" AND shift_id = $%d", argIdx)
-		args = append(args, filters.ShiftID)
+	if filters.ShiftNumber != nil {
+		where += fmt.Sprintf(" AND shift_number = $%d", argIdx)
+		args = append(args, *filters.ShiftNumber)
 		argIdx++
 	}
 	if filters.Voided != nil {
@@ -192,7 +192,7 @@ func (s *Store) ListTransactions(ctx context.Context, filters ListTransactionsFi
 		return nil, 0, fmt.Errorf("count transactions: %w", err)
 	}
 
-	query := "SELECT id, session_id, location_id, shift_id, operator_id, vehicle_type, plate, " +
+	query := "SELECT id, session_id, location_id, shift_number, operator_id, vehicle_type, plate, " +
 		"check_in_at, check_out_at, duration_hours, " +
 		"rate_first_hour, rate_subsequent_hourly, rate_daily, fee_amount, " +
 		"payment_method, amount_tendered, change_amount, payment_reference, receipt_number, " +
@@ -211,7 +211,7 @@ func (s *Store) ListTransactions(ctx context.Context, filters ListTransactionsFi
 	for rows.Next() {
 		var tx Transaction
 		if err := rows.Scan(
-			&tx.ID, &tx.SessionID, &tx.LocationID, &tx.ShiftID, &tx.OperatorID, &tx.VehicleType, &tx.Plate,
+			&tx.ID, &tx.SessionID, &tx.LocationID, &tx.ShiftNumber, &tx.OperatorID, &tx.VehicleType, &tx.Plate,
 			&tx.CheckInAt, &tx.CheckOutAt, &tx.DurationHours,
 			&tx.RateFirstHour, &tx.RateSubsequentHourly, &tx.RateDaily, &tx.FeeAmount,
 			&tx.PaymentMethod, &tx.AmountTendered, &tx.ChangeAmount, &tx.PaymentReference, &tx.ReceiptNumber,
@@ -228,7 +228,7 @@ func (s *Store) ListTransactions(ctx context.Context, filters ListTransactionsFi
 func (s *Store) GetTransactionBySessionID(ctx context.Context, sessionID string) (*Transaction, error) {
 	var tx Transaction
 	err := s.pool.QueryRow(ctx, `
-		SELECT id, session_id, location_id, shift_id, operator_id, vehicle_type, plate,
+		SELECT id, session_id, location_id, shift_number, operator_id, vehicle_type, plate,
 		       check_in_at, check_out_at, duration_hours,
 		       rate_first_hour, rate_subsequent_hourly, rate_daily, fee_amount,
 		       payment_method, amount_tendered, change_amount, payment_reference, receipt_number,
@@ -236,7 +236,7 @@ func (s *Store) GetTransactionBySessionID(ctx context.Context, sessionID string)
 		FROM transactions
 		WHERE session_id = $1
 	`, sessionID).Scan(
-		&tx.ID, &tx.SessionID, &tx.LocationID, &tx.ShiftID, &tx.OperatorID, &tx.VehicleType, &tx.Plate,
+		&tx.ID, &tx.SessionID, &tx.LocationID, &tx.ShiftNumber, &tx.OperatorID, &tx.VehicleType, &tx.Plate,
 		&tx.CheckInAt, &tx.CheckOutAt, &tx.DurationHours,
 		&tx.RateFirstHour, &tx.RateSubsequentHourly, &tx.RateDaily, &tx.FeeAmount,
 		&tx.PaymentMethod, &tx.AmountTendered, &tx.ChangeAmount, &tx.PaymentReference, &tx.ReceiptNumber,

@@ -116,9 +116,9 @@ func (h *Handler) recordPayment(c *gin.Context, sessionID, method string, amount
 
 	operatorID := middleware.GetUserID(c)
 
-	// Use the shift from session (auto-detected at check-in)
-	if session.ShiftID == nil {
-		return nil, nil, errors.ErrNotFound
+	var shiftNumber int
+	if session.ShiftNumber != nil {
+		shiftNumber = *session.ShiftNumber
 	}
 
 	fee := *session.FeeAmount
@@ -155,7 +155,7 @@ func (h *Handler) recordPayment(c *gin.Context, sessionID, method string, amount
 	tx, err := h.store.CreateTransaction(ctx, store.CreateTransactionInput{
 		SessionID:            session.ID,
 		LocationID:           session.LocationID,
-		ShiftID:              *session.ShiftID,
+		ShiftNumber:          shiftNumber,
 		OperatorID:           operatorID,
 		VehicleType:          session.VehicleType,
 		Plate:                session.Plate,
@@ -234,11 +234,6 @@ func (h *Handler) Void(c *gin.Context) {
 		return
 	}
 
-	// Increment void count for the shift
-	if tx.ShiftID != "" {
-		_ = h.store.IncrementVoidCount(c.Request.Context(), tx.ShiftID)
-	}
-
 	h.logAudit(c, "transaction.voided", tx.ID, &tx.LocationID, gin.H{
 		"session_id":     tx.SessionID,
 		"void_reason":    req.VoidReason,
@@ -269,7 +264,11 @@ func (h *Handler) List(c *gin.Context) {
 
 	filters := store.ListTransactionsFilters{
 		LocationID: c.Query("location_id"),
-		ShiftID:    c.Query("shift_id"),
+	}
+	if v := c.Query("shift_number"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			filters.ShiftNumber = &n
+		}
 	}
 	if v := c.Query("voided"); v != "" {
 		b := v == "true"

@@ -33,7 +33,6 @@ type SyncItem struct {
 	CheckOutAt      *time.Time               `json:"check_out_at,omitempty"`
 	FeeAmount       *float64                 `json:"fee_amount,omitempty"`
 	RateSnapshot    map[string]interface{}   `json:"rate_snapshot,omitempty"`
-	ShiftID         string                   `json:"shift_id,omitempty"`
 	OperatorID      string                   `json:"operator_id,omitempty"`
 	DurationHours   int                      `json:"duration_hours,omitempty"`
 	RateFirstHour   float64                  `json:"rate_first_hour,omitempty"`
@@ -50,7 +49,6 @@ type OfflineSessionData struct {
 	ID          string    `json:"id" binding:"required,uuid"`
 	LocationID  string    `json:"location_id" binding:"required,uuid"`
 	OperatorID  string    `json:"operator_id" binding:"required,uuid"`
-	ShiftID     string    `json:"shift_id" binding:"required,uuid"`
 	Plate       string    `json:"plate" binding:"required"`
 	CityCode    string    `json:"city_code"`
 	VehicleType string    `json:"vehicle_type" binding:"required"`
@@ -131,7 +129,6 @@ func (h *Handler) processItem(ctx context.Context, item SyncItem) SyncResult {
 			ID:          data.ID,
 			LocationID:  data.LocationID,
 			OperatorID:  data.OperatorID,
-			ShiftID:     data.ShiftID,
 			Plate:       normalizePlate(data.Plate),
 			CityCode:    normalizeCode(data.CityCode),
 			VehicleType: data.VehicleType,
@@ -160,7 +157,7 @@ func (h *Handler) processItem(ctx context.Context, item SyncItem) SyncResult {
 		}
 
 	case "payment":
-		if item.SessionID == "" || item.TransactionID == "" || item.ShiftID == "" || item.OperatorID == "" || item.PaymentMethod == "" || item.LocationID == "" || item.FeeAmount == nil {
+		if item.SessionID == "" || item.TransactionID == "" || item.OperatorID == "" || item.PaymentMethod == "" || item.LocationID == "" || item.FeeAmount == nil {
 			result.Error = "missing payment fields"
 			return result
 		}
@@ -173,7 +170,6 @@ func (h *Handler) processItem(ctx context.Context, item SyncItem) SyncResult {
 		tx, err := h.store.CreateOfflineTransaction(ctx, store.CreateOfflineTransactionInput{
 			ID:                   item.TransactionID,
 			SessionID:            item.SessionID,
-			ShiftID:              item.ShiftID,
 			OperatorID:           item.OperatorID,
 			DurationHours:        item.DurationHours,
 			RateFirstHour:        item.RateFirstHour,

@@ -19,10 +19,10 @@ func TestDailyRevenueReport(t *testing.T) {
 
 	locationID := seedLocation(ctx, t, s)
 	operatorID := seedOperator(ctx, t, s, "operator")
-	shift := seedShift(ctx, t, s, operatorID, locationID)
-	seedTransaction(ctx, t, s, locationID, operatorID, shift.ID, 5000, "CAR", false)
-	seedTransaction(ctx, t, s, locationID, operatorID, shift.ID, 3000, "MOTO", false)
-	seedTransaction(ctx, t, s, locationID, operatorID, shift.ID, 2000, "MOTO", true)
+	seedShiftConfig(ctx, t, s, locationID)
+	seedTransaction(ctx, t, s, locationID, operatorID, 5000, "CAR", false)
+	seedTransaction(ctx, t, s, locationID, operatorID, 3000, "MOTO", false)
+	seedTransaction(ctx, t, s, locationID, operatorID, 2000, "MOTO", true)
 
 	dr := store.DateRange{
 		DateFrom: time.Now().AddDate(0, 0, -1),
@@ -64,13 +64,13 @@ func TestOccupancyReport(t *testing.T) {
 
 	locationID := seedLocation(ctx, t, s)
 	operatorID := seedOperator(ctx, t, s, "operator")
-	shift := seedShift(ctx, t, s, operatorID, locationID)
+	seedShiftConfig(ctx, t, s, locationID)
 
 	for i := 0; i < 5; i++ {
 		_, err := s.CreateSession(ctx, store.CreateSessionInput{
 			LocationID:  locationID,
 			OperatorID:  operatorID,
-			ShiftID:     shift.ID,
+			ShiftNumber: 1,
 			Plate:       fmt.Sprintf("B%dXYZ", 1000+i),
 			CityCode:    "B",
 			VehicleType: "CAR",
@@ -106,11 +106,11 @@ func TestVehicleBreakdownReport(t *testing.T) {
 
 	locationID := seedLocation(ctx, t, s)
 	operatorID := seedOperator(ctx, t, s, "operator")
-	shift := seedShift(ctx, t, s, operatorID, locationID)
+	seedShiftConfig(ctx, t, s, locationID)
 
-	seedTransaction(ctx, t, s, locationID, operatorID, shift.ID, 5000, "CAR", false)
-	seedTransaction(ctx, t, s, locationID, operatorID, shift.ID, 3000, "MOTO", false)
-	seedTransaction(ctx, t, s, locationID, operatorID, shift.ID, 10000, "TRUCK", false)
+	seedTransaction(ctx, t, s, locationID, operatorID, 5000, "CAR", false)
+	seedTransaction(ctx, t, s, locationID, operatorID, 3000, "MOTO", false)
+	seedTransaction(ctx, t, s, locationID, operatorID, 10000, "TRUCK", false)
 
 	dr := store.DateRange{
 		DateFrom: time.Now().AddDate(0, 0, -1),
@@ -135,10 +135,10 @@ func TestOperatorActivityReport(t *testing.T) {
 
 	locationID := seedLocation(ctx, t, s)
 	operatorID := seedOperator(ctx, t, s, "operator")
-	shift := seedShift(ctx, t, s, operatorID, locationID)
+	seedShiftConfig(ctx, t, s, locationID)
 
-	seedTransaction(ctx, t, s, locationID, operatorID, shift.ID, 5000, "CAR", false)
-	seedTransaction(ctx, t, s, locationID, operatorID, shift.ID, 3000, "MOTO", false)
+	seedTransaction(ctx, t, s, locationID, operatorID, 5000, "CAR", false)
+	seedTransaction(ctx, t, s, locationID, operatorID, 3000, "MOTO", false)
 
 	dr := store.DateRange{
 		DateFrom: time.Now().AddDate(0, 0, -1),
@@ -216,36 +216,24 @@ func seedOperator(ctx context.Context, t *testing.T, s *store.Store, roleName st
 	return user.ID
 }
 
-func seedShift(ctx context.Context, t *testing.T, s *store.Store, operatorID, locationID string) *store.Shift {
+func seedShiftConfig(ctx context.Context, t *testing.T, s *store.Store, locationID string) {
 	t.Helper()
-	// Ensure shift config exists
-	configs, err := s.ListLocationShiftConfigs(ctx, locationID)
-	if err != nil || len(configs) == 0 {
-		// Create default shift config
-		_, _ = s.CreateLocationShiftConfig(ctx, store.CreateLocationShiftConfigInput{
-			LocationID:  locationID,
-			ShiftCode:   "08-16",
-			ShiftNumber: 1,
-			StartTime:   "08:00:00",
-			EndTime:     "16:00:00",
-		})
-	}
-	
-	// Get or create shift instance for today
-	shift, err := s.GetOrCreateShift(ctx, locationID, 1, time.Now())
-	if err != nil {
-		t.Fatalf("get or create shift: %v", err)
-	}
-	return shift
+	_, _ = s.CreateLocationShiftConfig(ctx, store.CreateLocationShiftConfigInput{
+		LocationID:  locationID,
+		ShiftCode:   "08-16",
+		ShiftNumber: 1,
+		StartTime:   "08:00:00",
+		EndTime:     "16:00:00",
+	})
 }
 
-func seedTransaction(ctx context.Context, t *testing.T, s *store.Store, locationID, operatorID, shiftID string, fee float64, vehicleType string, voided bool) {
+func seedTransaction(ctx context.Context, t *testing.T, s *store.Store, locationID, operatorID string, fee float64, vehicleType string, voided bool) {
 	t.Helper()
 
 	session, err := s.CreateSession(ctx, store.CreateSessionInput{
 		LocationID:  locationID,
 		OperatorID:  operatorID,
-		ShiftID:     shiftID,
+		ShiftNumber: 1,
 		Plate:       fmt.Sprintf("B%dABC", time.Now().UnixNano()%100000),
 		CityCode:    "B",
 		VehicleType: vehicleType,
@@ -266,7 +254,7 @@ func seedTransaction(ctx context.Context, t *testing.T, s *store.Store, location
 	tx, err := s.CreateTransaction(ctx, store.CreateTransactionInput{
 		SessionID:            session.ID,
 		LocationID:           locationID,
-		ShiftID:              shiftID,
+		ShiftNumber:          1,
 		OperatorID:           operatorID,
 		VehicleType:          vehicleType,
 		Plate:                session.Plate,

@@ -91,14 +91,6 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	// Increment incident count for the shift if session is provided
-	if req.SessionID != nil && *req.SessionID != "" {
-		session, err := h.store.GetSessionByID(c.Request.Context(), *req.SessionID)
-		if err == nil && session.ShiftID != nil {
-			_ = h.store.IncrementIncidentCount(c.Request.Context(), *session.ShiftID)
-		}
-	}
-
 	h.logAudit(c, "incident.created", inc.ID, &inc.LocationID, gin.H{
 		"type":        inc.Type,
 		"session_id":  inc.SessionID,
@@ -195,23 +187,6 @@ func (h *Handler) Resolve(c *gin.Context) {
 				return
 			}
 			_, _ = h.store.UpdateSessionToVoided(c.Request.Context(), tx.SessionID)
-		case "REASSIGN_SESSION":
-			tx, err := h.store.GetTransactionBySessionID(c.Request.Context(), *req.AdjustmentEntityID)
-			if err != nil {
-				if err == errors.ErrNotFound {
-					response.NotFound(c, "session")
-					return
-				}
-				_ = c.Error(err)
-				response.InternalServerError(c)
-				return
-			}
-			_, err = h.store.ReassignTransactionShift(c.Request.Context(), tx.ID, tx.OperatorID, tx.ShiftID)
-			if err != nil {
-				_ = c.Error(err)
-				response.InternalServerError(c)
-				return
-			}
 		}
 	}
 
