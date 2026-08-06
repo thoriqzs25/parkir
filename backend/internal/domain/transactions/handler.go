@@ -21,11 +21,6 @@ func NewHandler(store *store.Store) *Handler {
 	return &Handler{store: store}
 }
 
-type CashPaymentRequest struct {
-	SessionID      string  `json:"session_id" binding:"required,uuid"`
-	AmountTendered float64 `json:"amount_tendered" binding:"required,gte=0"`
-}
-
 type DigitalPaymentRequest struct {
 	SessionID        string  `json:"session_id" binding:"required,uuid"`
 	PaymentReference *string `json:"payment_reference,omitempty"`
@@ -39,7 +34,6 @@ type VoidTransactionRequest struct {
 func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 	payments := r.Group("/payments")
 	{
-		payments.POST("/cash", middleware.RequirePermission("payments:collect_cash"), h.Cash)
 		payments.POST("/digital", middleware.RequirePermission("payments:collect_digital"), h.Digital)
 	}
 
@@ -55,29 +49,6 @@ func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 	{
 		transactionsWithVoid.POST("/:id/void", h.Void)
 	}
-}
-
-func (h *Handler) Cash(c *gin.Context) {
-	var req CashPaymentRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "INVALID_INPUT", err.Error())
-		return
-	}
-
-	session, tx, err := h.recordPayment(c, req.SessionID, "CASH", &req.AmountTendered, nil)
-	if err != nil {
-		h.handlePaymentError(c, err)
-		return
-	}
-
-	h.logAudit(c, "transaction.cash", tx.ID, &tx.LocationID, gin.H{
-		"session_id":      session.ID,
-		"amount_tendered": req.AmountTendered,
-		"change":          tx.ChangeAmount,
-		"receipt_number":  tx.ReceiptNumber,
-	})
-
-	response.Created(c, tx)
 }
 
 func (h *Handler) Digital(c *gin.Context) {
