@@ -112,7 +112,8 @@ AMB currently operates 20+ parking locations using a third-party automated ticke
 3. Server room app:
    - Looks up session in local DB
    - Calculates fee using local rate config (cached from cloud)
-   - Returns to gate app: {fee_amount, check_in_time, duration, vehicle_type}
+   - Assigns shift number (from shift config)
+   - Returns to gate app: {fee_amount, check_in_time, duration, vehicle_type, shift_number}
 4. Gate app displays on driver-facing monitor:
    - Fee amount
    - Check-in time
@@ -121,8 +122,14 @@ AMB currently operates 20+ parking locations using a third-party automated ticke
 5. Driver taps e-money/Flazz card → Payment vendor processes
 6. Payment vendor signals success to gate app
 7. Gate app → Server room app: "Finalize session"
-8. Server room app marks session as CLOSED, records transaction
+8. Server room app marks session as CLOSED, records transaction with shift_number
 9. Gate opens → Vehicle exits
+10. Driver can press "Receipt" button (optional) → Gate app prints receipt:
+    - Check-in time
+    - Check-out time
+    - Fee amount
+    - Vehicle type
+    - Shift number
 ```
 
 **Exceptions:**
@@ -303,7 +310,41 @@ AMB currently operates 20+ parking locations using a third-party automated ticke
 
 ---
 
-## 9. Offline Handling
+## 9. Shift Management
+
+**Shift numbers** derive from shift configs. Every session and transaction has a shift number assigned by the server room app.
+
+**Default shift config (for new locations):**
+- 3 shifts per day: morning, afternoon, evening
+- Shift number increments continuously across days
+
+**Example:**
+```
+Day 1: shift_1 (morning), shift_2 (afternoon), shift_3 (evening)
+Day 2: shift_4 (morning), shift_5 (afternoon), shift_6 (evening)
+Day 3: shift_7 (morning), ...
+```
+
+**Shift config structure:**
+```
+{
+  location_id: string,
+  shift_code: string (e.g., "06-14", "14-22", "22-06"),
+  shift_number: integer (display number within day),
+  start_time: time (e.g., "06:00"),
+  end_time: time (e.g., "14:00"),
+  is_overnight: boolean (for shifts that cross midnight)
+}
+```
+
+**Shift assignment:**
+- Server room app determines current shift based on check-in/check-out time
+- Shift number is stored in session and transaction records
+- Used for reporting and reconciliation
+
+---
+
+## 10. Offline Handling
 
 ### Server room app offline (no internet)
 - Gates still operate using local DB
@@ -328,7 +369,7 @@ AMB currently operates 20+ parking locations using a third-party automated ticke
 
 ---
 
-## 10. Deployment & Infrastructure
+## 11. Deployment & Infrastructure
 
 ### Installation
 - **Server room app:** Manual USB install on mini PC
@@ -366,7 +407,7 @@ AMB currently operates 20+ parking locations using a third-party automated ticke
 
 ---
 
-## 11. Payment Integration — TBD
+## 12. Payment Integration — TBD
 
 **Vendor:** TBD
 
@@ -384,7 +425,82 @@ AMB currently operates 20+ parking locations using a third-party automated ticke
 
 ---
 
-## 12. Open Questions
+## 12. Authentication & Authorization
+
+**Dashboard (AMB Admin Dashboard):**
+- Accounts created by developer initially (bootstrap)
+- Superadmin can create new accounts and assign permissions
+- JWT-based authentication (httpOnly cookie)
+- Role-based access control (RBAC)
+
+**Gate app:**
+- No accounts needed
+- Stateless, no authentication required
+- Communicates with server room app via LAN (trusted network)
+
+**Server room app:**
+- No user-facing authentication
+- Communicates with cloud backend (API key or service account)
+- Communicates with gate apps via LAN (trusted network)
+
+---
+
+## 13. Logging & Monitoring
+
+### Logging
+- **All logs:** error, warn, info levels
+- **Log aggregation:** Loki
+- **Log sources:**
+  - Gate app (collected by server room app or directly to Loki)
+  - Server room app (to Loki)
+  - Cloud backend (to Loki)
+  - Dashboard web (to Loki)
+
+### Monitoring & Metrics
+- **Monitoring stack:** Lens (Grafana + Prometheus)
+- **Metrics sources:**
+  - Server room app (direct to Prometheus)
+  - Cloud backend (direct to Prometheus)
+  - Dashboard web (direct to Prometheus)
+  - Gate app metrics collected by server room app via ping API (every 15s)
+
+**Key metrics:**
+- Gate app: uptime, response time, hardware status (printer, scanner, gate motor)
+- Server room app: uptime, DB size, sync queue length, transaction rate
+- Cloud backend: uptime, API response time, database connections
+- Dashboard: uptime, page load time
+
+**Alerts:**
+- Gate unhealthy → audio alarm (location staff)
+- Server room unhealthy → email/Telegram (developer) + dashboard alert
+- Sync failures → email/Telegram (developer)
+
+---
+
+## 14. Disaster Recovery
+
+**Server room PC dies:**
+- Staff runs offline SOP (manual gate operation, paper receipts)
+- Developer deploys replacement PC (USB install)
+- Server room app restores from local DB snapshot or cloud sync
+
+**Gate mini PC dies:**
+- Staff runs offline SOP for that gate
+- Developer deploys replacement mini PC (USB install)
+- Gate app re-registers via mDNS, re-configured via dashboard
+
+**Cloud backend dies:**
+- Server room apps continue operating with local DB
+- Transactions queued until cloud restored
+- Config changes cannot be pushed until cloud restored
+
+**Internet outage:**
+- Server room apps operate offline
+- Transactions queued, sync when internet restored
+
+---
+
+## 16. Open Questions
 
 1. **What DB does server room app use?** PostgreSQL? SQLite?
 2. **Gate app tech stack?** Electron? Tauri? Something else?
@@ -396,14 +512,12 @@ AMB currently operates 20+ parking locations using a third-party automated ticke
 8. **Dashboard tech stack?** Continue with Next.js?
 9. **Cloud backend tech stack?** Continue with Go/Gin?
 10. **Driver-facing monitor:** What resolution? Touchscreen? How does gate app render UI?
-11. **Receipt printing:** Does payment vendor terminal print? Or does PARKIR need to print receipt?
-12. **Multi-language:** Indonesian only? Or support English too?
-13. **Audit logging:** What level of detail? (Already in current codebase)
-14. **Shift management:** How does shift work with automated gates? (Already in current codebase)
+11. **Multi-language:** Indonesian only? Or support English too?
+12. **Audit logging:** What level of detail? (Already in current codebase)
 
 ---
 
-## 13. Data Model (Draft)
+## 17. Data Model (Draft)
 
 ### New/Modified Entities
 
@@ -433,6 +547,7 @@ AMB currently operates 20+ parking locations using a third-party automated ticke
   fee_amount: integer,
   rate_config_version: string,
   shift_config_version: string,
+  shift_number: integer,
   state: "ACTIVE" | "PENDING_PAYMENT" | "CLOSED" | "VOIDED",
   qr_data: string (what was encoded in QR),
   synced_at: timestamp (nullable, when synced to cloud)
@@ -450,6 +565,7 @@ AMB currently operates 20+ parking locations using a third-party automated ticke
   payment_method: "emoney" | "flazz" | "cash" | "offline_sop",
   payment_reference: string (nullable),
   config_version: string,
+  shift_number: integer,
   created_at: timestamp,
   synced_at: timestamp (nullable),
   voided: boolean,
@@ -473,7 +589,7 @@ AMB currently operates 20+ parking locations using a third-party automated ticke
 
 ---
 
-## 14. Migration Plan
+## 18. Migration Plan
 
 ### Phase 1: Core Infrastructure
 - Cloud backend: gate management, config versioning, sync API
@@ -513,7 +629,7 @@ AMB currently operates 20+ parking locations using a third-party automated ticke
 
 ---
 
-## 15. Differences from v1 (Current System)
+## 19. Differences from v1 (Current System)
 
 | Aspect | v1 (Current) | v2 (Automated) |
 |--------|--------------|----------------|
