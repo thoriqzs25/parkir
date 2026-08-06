@@ -2,233 +2,304 @@
 
 ## 17.1 Overview
 
-The shift system tracks the working periods of operators at each location. A shift has a defined start and end time, and is used to scope operator activity reports, cash collection accountability, and handover records.
+The shift system in v2 is **automated and time-based** (not operator-driven). Shift numbers increment continuously across days and are assigned automatically by the server room app based on check-in/check-out time. Shifts are used for reporting, reconciliation, and audit purposes.
 
-Shifts are operator-driven: the operator starts their shift when they begin work and ends it when they finish. A shift is always tied to one operator and one location.
+**Key difference from v1:** No operators start/end shifts manually. Shifts are predefined time windows (e.g., morning, afternoon, evening) and shift numbers increment continuously.
 
 ---
 
-## 17.2 Shift Lifecycle
+## 17.2 Shift Concepts
+
+### Shift Config
+
+A **shift config** defines the time windows for shifts at a location:
+
+```json
+{
+  "location_id": "uuid",
+  "version": "shift_v15",
+  "shift_code": "06-14",
+  "shift_number": 1,
+  "start_time": "06:00",
+  "end_time": "14:00",
+  "is_overnight": false
+}
+```
+
+### Default Shift Config (3 Shifts/Day)
+
+| Shift Code | Start Time | End Time | Is Overnight | Shift Number (Day 1) |
+|------------|------------|----------|--------------|---------------------|
+| 06-14 | 06:00 | 14:00 | No | 1 |
+| 14-22 | 14:00 | 22:00 | No | 2 |
+| 22-06 | 22:00 | 06:00 | Yes | 3 |
+
+### Continuous Shift Number Increment
+
+Shift numbers increment **continuously across days** (not reset daily):
 
 ```
-Operator logs in
-      │
-      ▼
-  Start Shift
-  - Shift record created
-  - State: OPEN
-      │
-      │  Operator works: check-ins, check-outs, payments
-      │
-      ▼
-  End Shift
-  - Operator records cash handover amount
-  - Shift record closed
-  - State: CLOSED
+Day 1: shift_1 (06:00-14:00), shift_2 (14:00-22:00), shift_3 (22:00-06:00)
+Day 2: shift_4 (06:00-14:00), shift_5 (14:00-22:00), shift_6 (22:00-06:00)
+Day 3: shift_7 (06:00-14:00), shift_8 (14:00-22:00), shift_9 (22:00-06:00)
+...
+```
+
+**Formula:**
+```
+shift_number = (day_number - 1) * shifts_per_day + shift_index
+
+Where:
+- day_number = days since system start (or epoch)
+- shifts_per_day = 3 (default)
+- shift_index = 1, 2, or 3 (based on time of day)
 ```
 
 ---
 
-## 17.3 Shift States
+## 17.3 Shift Assignment
 
-| State | Description |
-|-------|-------------|
-| `OPEN` | Shift is active; operator is working |
-| `CLOSED` | Shift ended; cash handover recorded |
+### Automatic Assignment
+
+The **server room app** automatically assigns shift numbers based on check-in/check-out time:
+
+**At Check-In (Entry):**
+```
+current_time = now()
+shift_config = lookup_shift_config(location_id, current_time)
+shift_number = calculate_continuous_shift_number(shift_config, current_date)
+session.shift_number = shift_number
+```
+
+**At Check-Out (Exit):**
+```
+current_time = now()
+shift_config = lookup_shift_config(location_id, current_time)
+shift_number = calculate_continuous_shift_number(shift_config, current_date)
+transaction.shift_number = shift_number
+```
+
+**Note:** Session and transaction may have different shift_numbers if the vehicle parks overnight (enters in shift_3, exits in shift_4).
+
+### Shift Lookup Logic
+
+```
+function lookup_shift_config(location_id, timestamp):
+    configs = get_shift_configs(location_id)
+    time = timestamp.time()
+    
+    for config in configs:
+        if config.is_overnight:
+            if time >= config.start_time OR time < config.end_time:
+                return config
+        else:
+            if config.start_time <= time < config.end_time:
+                return config
+    
+    return null  // No matching shift (should not happen with proper config)
+```
 
 ---
 
-## 17.4 Starting a Shift (Operator, Desktop App)
+## 17.4 Shift Config Management
 
-1. After login, the operator is prompted to **Start Shift** before accessing operational functions.
-2. Operator confirms their active location (pre-selected from login).
-3. System creates a shift record with `started_at = now()`, state = `OPEN`.
-4. All subsequent sessions and transactions are linked to this shift.
+### Configuration via Dashboard
 
-**Only one shift can be OPEN per operator at a time.**
-If the operator logs in and finds an unclosed shift from a previous session (e.g. app crashed), they are prompted to close it first or flag it for manager review.
+Admins configure shift configs via the dashboard:
+
+**Create Shift Config:**
+- Location (dropdown)
+- Shift code (text, e.g., "06-14")
+- Start time (time picker)
+- End time (time picker)
+- Is overnight (checkbox)
+
+**Edit Shift Config:**
+- Same fields as create
+- Auto-increments version
+
+**Delete Shift Config:**
+- Soft delete (mark as inactive)
+- Cannot delete if referenced by sessions/transactions
+
+### Config Versioning
+
+- Every shift config has a `version` field (e.g., "shift_v1", "shift_v2", ...).
+- Version auto-increments on create/update.
+- Sessions and transactions record `shift_config_version` (audit trail).
+- Ensures audit trail even if shift configs change later.
+
+### Config Distribution
+
+**Cloud Backend (Source of Truth):**
+- Stores all shift configs (versioned).
+- Serves configs to server room apps.
+
+**Server Room App (Local Cache):**
+- Polls cloud every 1 minute for config updates.
+- Stores configs in local SQLite database.
+- Uses local configs for shift assignment (offline resilience).
 
 ---
 
-## 17.5 Ending a Shift (Operator, Desktop App)
+## 17.5 Shift Reporting
 
-1. Operator selects **End Shift** from the home screen.
-2. System displays shift summary:
-   - Shift duration
-   - Total check-ins
-   - Total check-outs
-   - Total sessions closed
-   - Total cash collected (sum of cash transactions)
-   - Total digital collected (sum of digital transactions)
-   - Total revenue
-3. Operator enters **cash handover amount** — the physical cash they are handing to the supervisor.
-4. System calculates and displays:
-   - Expected cash = sum of all cash transactions in the shift
-   - Discrepancy = cash_handover_amount − expected_cash
-5. Operator submits. Shift record closed with `ended_at = now()`.
-6. If discrepancy is non-zero, the shift is flagged and a manager notification is triggered.
+### Shift Summary Report
 
----
+Managers can view shift summaries via the dashboard:
 
-## 17.6 Shift Summary (Manager, Web Dashboard)
+**Filters:**
+- Location
+- Date range
+- Shift number (optional)
 
-Managers can view shift records per location:
-
-### Shift List View
+**Columns:**
 | Column | Description |
 |--------|-------------|
-| Operator | Name |
-| Location | |
-| Started At | |
-| Ended At | |
-| Duration | |
-| Sessions | Total closed sessions |
-| Cash Collected | Sum of cash transactions |
-| Digital Collected | Sum of digital transactions |
-| Total Revenue | |
-| Cash Handover | Amount physically handed over |
-| Discrepancy | Handover − Expected cash |
-| Status | OPEN / CLOSED / FLAGGED |
+| Shift Number | Continuous shift number (e.g., 15, 16, 17) |
+| Shift Code | Time window (e.g., "06-14") |
+| Date | Calendar date |
+| Total Sessions | Number of sessions created in this shift |
+| Total Transactions | Number of transactions completed in this shift |
+| Total Revenue | Sum of transaction amounts |
+| Avg Transaction | Average transaction amount |
+| Vehicle Breakdown | Count by vehicle type (CAR, MOTO, TRUCK) |
 
-### Shift Detail View
-- Full session list for the shift (plate, vehicle type, in/out times, fee, payment method).
-- Breakdown: cash vs digital.
-- Discrepancy detail with flag reason.
+**Example:**
+| Shift | Code | Date | Sessions | Transactions | Revenue | Avg |
+|-------|------|------|----------|--------------|---------|-----|
+| 15 | 06-14 | 2026-08-06 | 120 | 115 | Rp 1,500,000 | Rp 13,043 |
+| 16 | 14-22 | 2026-08-06 | 95 | 90 | Rp 1,200,000 | Rp 13,333 |
+| 17 | 22-06 | 2026-08-06 | 30 | 28 | Rp 400,000 | Rp 14,286 |
 
----
+### Export
 
-## 17.7 Discrepancy Handling
-
-A shift is flagged (`status = FLAGGED`) when:
-- `cash_handover_amount ≠ expected_cash_collected`
-
-Flagged shifts appear in the manager's alert panel alongside anomaly alerts (Chapter 13).
-
-Manager actions on a flagged shift:
-- Add a resolution note explaining the discrepancy.
-- Mark as resolved (`status = RESOLVED`).
-
-Common causes: missed cash transactions, change errors, partial payments not recorded correctly.
+- Shift summaries exportable to CSV.
+- Includes all columns and filters.
 
 ---
 
-## 17.8 Unclosed Shifts
+## 17.6 Overnight Shifts
 
-If an operator's shift remains `OPEN` for more than the configured threshold (default: 16 hours):
-- An anomaly alert is triggered: `SHIFT_NOT_CLOSED`.
-- Manager can forcibly close the shift with a note.
-- Force-closed shifts are marked `FORCE_CLOSED` and audit-logged.
+### Definition
 
----
+An **overnight shift** crosses midnight (e.g., 22:00 - 06:00).
 
-## 17.9 Shift and Session Linkage
+### Handling
 
-- Every session opened during a shift is linked to that shift via `shift_id`.
-- Sessions created in offline mode are linked to the shift that was open at the time of check-in.
-- If a shift ends before an offline session syncs, the session is still attributed to that shift based on `check_in_at` timestamp.
-
-### 17.9.1 Cross-Shift Session Handling
-
-When a vehicle is checked in during one shift but checks out during another shift:
-
+**Shift Assignment:**
 ```
-08:00  Operator A starts shift
-08:30  Vehicle B 1234 XYZ checks in → Session created, linked to Shift A
-16:00  Operator A ends shift (vehicle still parked)
-16:00  Operator B starts shift
-18:00  Vehicle B 1234 XYZ checks out → Operator B collects payment
+If current_time >= 22:00:
+    shift = evening shift (22:00-06:00) for current date
+Else if current_time < 06:00:
+    shift = evening shift (22:00-06:00) for previous date
+Else:
+    shift = morning or afternoon shift for current date
 ```
 
-**Attribution Model: Transaction-Level Shift Tracking**
+**Example:**
+- 2026-08-06 23:00 → shift_3 (evening shift of Aug 6)
+- 2026-08-07 02:00 → shift_3 (evening shift of Aug 6, continues into Aug 7)
+- 2026-08-07 07:00 → shift_4 (morning shift of Aug 7)
 
-| Record | Shift Attribution | Operator Attribution |
-|--------|-------------------|----------------------|
-| Session | Check-in shift (Shift A) | Check-in operator (Operator A) |
-| Transaction | Payment shift (Shift B) | Payment collector (Operator B) |
+**Reporting:**
+- Overnight shift spans two calendar dates.
+- Report shows shift by shift_number (not by date).
+- Sessions/transactions grouped by shift_number.
 
-**Data Model:**
+---
+
+## 17.7 Data Model
+
+### Shift Config Table
 
 ```sql
-sessions
-  shift_id       UUID  -- check-in shift
-  operator_id    UUID  -- check-in operator
-
-transactions
-  shift_id       UUID  -- payment collection shift
-  operator_id    UUID  -- payment collector
-```
-
-**Why this design:**
-- **Session** = parking event → attributed to whoever registered the vehicle (accountability for correct plate/vehicle type)
-- **Transaction** = payment → attributed to whoever collected the money (accountability for cash handling)
-- **Cash reconciliation** is based on `transactions.shift_id`, ensuring correct handover amounts
-
-**Shift Summary Example:**
-
-| Shift | Operator | Vehicles Checked In | Payments Collected | Cash to Hand Over |
-|-------|----------|---------------------|--------------------|--------------------|
-| Shift A | Operator A | 1 | 0 | Rp 0 |
-| Shift B | Operator B | 0 | 1 | Rp 15,000 |
-
-**Reports Implications:**
-- "Sessions by operator" report shows who checked in each vehicle
-- "Revenue by operator" report shows who collected each payment
-- Cash discrepancy calculation uses `transactions.shift_id` for accuracy
-
----
-
-## 17.10 Impact on Reports
-
-| Report | Shift Impact |
-|--------|-------------|
-| Daily Revenue Summary | Can now be filtered by shift |
-| Operator Activity Log | Activities grouped by shift |
-| Cash discrepancy | New report: shifts with non-zero discrepancy |
-
----
-
-## 17.11 Permissions
-
-| Permission | Description |
-|-----------|-------------|
-| `shifts:start` | Start a shift (operator) |
-| `shifts:end` | End a shift (operator) |
-| `shifts:view` | View shift records (manager) |
-| `shifts:force_close` | Forcibly close an unclosed shift (manager) |
-| `shifts:resolve_discrepancy` | Mark a flagged shift as resolved (manager) |
-
----
-
-## 17.12 Data Model
-
-```sql
-shifts
-  id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  operator_id             UUID NOT NULL REFERENCES users(id),
-  location_id             UUID NOT NULL REFERENCES locations(id),
-  status                  VARCHAR(20) NOT NULL DEFAULT 'OPEN'
-                            CHECK (status IN ('OPEN', 'CLOSED', 'FLAGGED', 'RESOLVED', 'FORCE_CLOSED')),
-  started_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
-  ended_at                TIMESTAMPTZ,
-  expected_cash           NUMERIC(12,2),   -- populated on shift end
-  cash_handover_amount    NUMERIC(12,2),   -- entered by operator
-  discrepancy             NUMERIC(12,2),   -- cash_handover - expected_cash
-  discrepancy_notes       TEXT,            -- manager resolution notes
-  force_closed_by         UUID REFERENCES users(id),
-  force_closed_reason     TEXT,
-  created_at              TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE shift_configs (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  location_id     UUID NOT NULL REFERENCES locations(id),
+  version         VARCHAR(50) NOT NULL,  -- e.g., "shift_v15"
+  shift_code      VARCHAR(20) NOT NULL,  -- e.g., "06-14"
+  shift_number    INTEGER NOT NULL,  -- display number within day (1, 2, 3)
+  start_time      TIME NOT NULL,
+  end_time        TIME NOT NULL,
+  is_overnight    BOOLEAN NOT NULL DEFAULT false,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
-CREATE INDEX idx_shifts_operator    ON shifts (operator_id);
-CREATE INDEX idx_shifts_location    ON shifts (location_id, started_at);
-CREATE INDEX idx_shifts_status      ON shifts (status);
 ```
 
-Sessions are linked to shifts:
+### Session Table (shift_number field)
 
 ```sql
--- Add to sessions table:
-ALTER TABLE sessions ADD COLUMN shift_id UUID REFERENCES shifts(id);
-CREATE INDEX idx_sessions_shift ON sessions (shift_id);
+CREATE TABLE sessions (
+  ...
+  shift_number  INTEGER NOT NULL,  -- assigned at check-in
+  shift_config_version  VARCHAR(50),  -- which config version was used
+  ...
+);
 ```
+
+### Transaction Table (shift_number field)
+
+```sql
+CREATE TABLE transactions (
+  ...
+  shift_number  INTEGER NOT NULL,  -- assigned at check-out
+  ...
+);
+```
+
+---
+
+## 17.8 Design Decisions
+
+**Why continuous shift numbers (not reset daily)?**
+- Unique identifier across time (no ambiguity).
+- Easier to query and aggregate.
+- Matches AMB's current system.
+- Prevents confusion when reporting across multiple days.
+
+**Why automatic assignment (not manual)?**
+- No operators in v2 (fully automated).
+- Consistent and reliable (no human error).
+- Works offline (server room app has local config).
+- Reduces complexity (no shift start/end flows).
+
+**Why 3 shifts/day (default)?**
+- Matches AMB's current operational model.
+- Covers 24 hours (morning, afternoon, evening).
+- Configurable per location (can add more shifts if needed).
+
+**Why store shift_number in session and transaction?**
+- Audit trail: know which shift session was created in.
+- Reporting: aggregate by shift for reconciliation.
+- Session and transaction may have different shifts (overnight parking).
+
+**Why shift_config_version tracking?**
+- Audit trail: know which shift config was used.
+- If configs change, old sessions/transactions still reference old configs.
+- Prevents retroactive changes.
+- Supports offline operation (use last known config).
+
+**Why server room app assigns shifts (not cloud)?**
+- Offline resilience: gates work without internet.
+- Lower latency: no round-trip to cloud.
+- Local shift config polled every 1 min (fresh enough).
+
+---
+
+## 17.9 Differences from v1
+
+| Aspect | v1 (Manual) | v2 (Automated) |
+|--------|-------------|----------------|
+| **Shift start** | Operator manually starts shift | Automatic (time-based) |
+| **Shift end** | Operator manually ends shift | Automatic (time-based) |
+| **Shift number** | Per operator, per day | Continuous across all operators/days |
+| **Shift config** | Fixed per location | Configurable, versioned |
+| **Cash handover** | Operator records cash handover | N/A (no cash, no operators) |
+| **Shift summary** | Per operator | Per shift (time window) |
+| **Overnight handling** | Operator ends shift before midnight | Automatic (overnight shift config) |
+| **Reporting** | By operator + shift | By shift (time window) |
+
+---
+
+*End of Chapter 17 — Shift Management (v2)*

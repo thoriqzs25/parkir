@@ -1,124 +1,142 @@
-# Chapter 15 — Out of Scope (v1)
+# Chapter 15 — Out of Scope (v2)
 
 ## 15.1 Purpose
 
-This chapter explicitly documents features and capabilities that are **not** part of the v1 implementation. These boundaries exist to keep the initial build focused and deliverable. Items listed here are candidates for future versions.
+This chapter explicitly documents features and capabilities that are **not** part of the v2 implementation. These boundaries exist to keep the build focused and deliverable. Items listed here are candidates for future versions.
 
 ---
 
 ## 15.2 Out of Scope Items
 
-### 15.2.1 Parking Slot-Level Tracking
+### 15.2.1 License Plate Recognition (LPR/ANPR)
 
-**What it means:** Tracking which specific numbered bay or slot a vehicle occupies (e.g. "Vehicle B 1234 XYZ is in Slot B-12").
+**What it means:** Automatic license plate recognition using cameras at entry/exit gates.
 
-**Why excluded:** Adds significant complexity in data modeling, UI, and operational workflow. The system tracks occupancy counts per vehicle type — not per individual slot.
+**Why excluded:** Adds significant hardware cost (LPR cameras), complexity (plate recognition algorithms), and integration work. QR tickets are sufficient for session tracking.
 
-**Future path:** Can be introduced as a slot assignment feature in v2, potentially with QR-code-based slot identification.
+**Future path:** Can be added in v3 for security/audit purposes. Would require LPR camera integration, plate validation logic, and plate-to-session matching.
 
 ---
 
-### 15.2.2 Monthly Subscription / Pass-Based Billing
+### 15.2.2 Mobile App for Drivers
+
+**What it means:** Driver-facing mobile app for reservations, payments, digital receipts, parking history.
+
+**Why excluded:** Different UX, different security model, and much larger scope. v2 focuses on automated gate system for AMB.
+
+**Future path:** Separate driver-facing app or web portal in v3, integrated with same backend API.
+
+---
+
+### 15.2.3 Monthly Subscription / Pass-Based Billing
 
 **What it means:** Recurring monthly fees for registered subscribers who can park for a flat monthly rate.
 
-**Why excluded:** Requires a subscriber management module, recurring billing logic, pass validation at check-in, and integration with a payment processing gateway for scheduled charges.
+**Why excluded:** Requires subscriber management module, recurring billing logic, pass validation at entry, and integration with payment gateway for scheduled charges. AMB's current model is pay-per-use.
 
-**Future path:** Design as a separate billing plan type in the rate configuration module, with a linked subscriber registry.
-
----
-
-### 15.2.3 Driver-Facing Portal or Mobile App
-
-**What it means:** An interface for drivers themselves — to check occupancy before arriving, view their parking history, pay digitally via their own phone, or receive digital receipts.
-
-**Why excluded:** Different UX, different security model, and a much larger scope than the admin/operator system.
-
-**Future path:** A separate driver-facing app or web portal, integrated with the same backend API.
+**Future path:** Design as separate billing plan type in rate configuration module, with linked subscriber registry in v3.
 
 ---
 
-### 15.2.4 Access Control Hardware Integration
+### 15.2.4 Parking Slot-Level Tracking
 
-**What it means:** Automated gate/barrier control — the system sending a signal to open or close physical entry/exit barriers based on check-in or payment status.
+**What it means:** Tracking which specific numbered bay or slot a vehicle occupies (e.g., "Vehicle is in Slot B-12").
 
-**Why excluded:** Requires hardware integration layer (serial/TCP), vendor-specific protocols, and real-time reliability guarantees beyond typical web API behavior.
+**Why excluded:** Adds complexity in data modeling, UI, and operational workflow. System tracks occupancy counts per vehicle type — not per individual slot. No operators to manage slots.
 
-**Future path:** Introduce a hardware integration service as a separate module, communicating via webhook or direct TCP connection to gate controllers.
-
----
-
-### 15.2.5 Push Notifications via Email, SMS, or WhatsApp
-
-**What it means:** Sending incident alerts, revenue summaries, or system health notifications to users via external channels.
-
-**Why excluded:** Requires third-party integrations (SMTP, Twilio, WhatsApp Business API), additional user preference management, and delivery reliability infrastructure.
-
-**Future path:** Add a notification preferences table and integrate with a notification delivery service (e.g. Firebase, Twilio, or a custom SMTP setup).
+**Future path:** Can be introduced in v3 with slot assignment feature, potentially with QR-code-based slot identification.
 
 ---
 
-### 15.2.6 Mixed Payment (Partial Cash + Partial Digital)
+### 15.2.5 Multi-Tenant Support
 
-**What it means:** Splitting a single parking fee between cash and digital payment (e.g. pay Rp 15,000 in cash and Rp 5,000 via QRIS).
+**What it means:** Supporting multiple parking companies (tenants) on same system instance.
 
-**Why excluded:** Complicates the transaction model, receipt layout, and reconciliation logic. Low priority for initial operational needs.
+**Why excluded:** v2 is built for AMB (single tenant). Multi-tenancy requires tenant isolation, separate billing per tenant, tenant-specific configs, and more complex data model.
 
-**Future path:** Extend the `transactions` table to support multiple payment line items.
+**Future path:** Add tenant_id to all entities, implement tenant isolation, build tenant management dashboard in v3.
 
 ---
 
-### 15.2.7 Multi-Currency Support
+### 15.2.6 Cash Payments
+
+**What it means:** Accepting cash payments at automated gates.
+
+**Why excluded:** Fully automated gates cannot handle cash (no operator to collect/change). Cash requires human intervention. v2 is cashless (e-money/Flazz only).
+
+**Future path:** Could add cash acceptor hardware in v3 (complex, requires change dispensing, security).
+
+---
+
+### 15.2.7 Mixed Payment (Partial E-Money + Partial Other)
+
+**What it means:** Splitting a single parking fee between multiple payment methods.
+
+**Why excluded:** Complicates transaction model, receipt layout, and reconciliation logic. Low priority for automated system.
+
+**Future path:** Extend transactions table to support multiple payment line items in v3.
+
+---
+
+### 15.2.8 Multi-Currency Support
 
 **What it means:** Operating in multiple currencies across different locations.
 
-**Why excluded:** Single-currency operation is assumed for v1. All amounts are in one currency (configurable at system setup, but not changeable per transaction).
+**Why excluded:** Single-currency operation (IDR) assumed for v2. All amounts in Indonesian Rupiah.
 
-**Future path:** Add a `currency` field to locations and transactions; update all financial calculations and reporting accordingly.
-
----
-
-### 15.2.8 EV Charging Slot Management
-
-**What it means:** Tracking charging stations, managing EV-specific fees (e.g. per kWh or per minute of charging), or reserving charging slots.
-
-**Why excluded:** Requires a separate resource (charger) management layer beyond parking sessions.
-
-**Future path:** Introduce as a resource type alongside parking slots, with its own fee model.
+**Future path:** Add currency field to locations and transactions in v3; update all financial calculations and reporting.
 
 ---
 
-### 15.2.9 Self-Service Payment Kiosks
+### 15.2.9 EV Charging Slot Management
 
-**What it means:** Standalone kiosk machines that allow drivers to pay without an operator present.
+**What it means:** Tracking charging stations, managing EV-specific fees (per kWh or per minute), reserving charging slots.
 
-**Why excluded:** Requires hardware integration, kiosk-specific UI, and change-dispensing logic.
+**Why excluded:** Requires separate resource (charger) management layer beyond parking sessions. Not needed for AMB.
 
-**Future path:** A kiosk mode could be built on the same backend API with a simplified, touch-friendly frontend.
-
----
-
-### 15.2.10 Automated Digital Payment Gateway Callbacks
-
-**What it means:** The system automatically confirming a digital payment when the gateway sends a webhook (instead of requiring the operator to manually confirm).
-
-**Why excluded:** Requires a registered webhook endpoint, gateway API credentials, signature verification, and idempotent payment handling.
-
-**Future path:** Add a `/webhooks/payment` endpoint per gateway, process callbacks asynchronously, and auto-advance sessions from `PENDING_PAYMENT` to `CLOSED`.
+**Future path:** Introduce as resource type alongside parking sessions in v3, with its own fee model.
 
 ---
 
-## 15.3 Deferral vs. Never
+### 15.2.10 Push Notifications via Email, SMS, or WhatsApp
+
+**What it means:** Sending incident alerts, revenue summaries, or system health notifications to users via external channels.
+
+**Why excluded:** v2 uses internal alerting (audio for staff, email/Telegram for developers). No driver notifications needed (automated system).
+
+**Future path:** Add notification preferences table and integrate with notification delivery service in v3.
+
+---
+
+## 15.3 In Scope for v2 (Was Out of Scope in v1)
+
+The following were out of scope in v1 but are **in scope** for v2:
+
+| Feature | v1 Status | v2 Status |
+|---------|-----------|-----------|
+| Hardware gate integration | Out of scope | **In scope** (fully automated) |
+| Self-service kiosks | Out of scope | **In scope** (automated gates) |
+| Automated payment callbacks | Out of scope | **In scope** (payment vendor integration) |
+| Offline operation | Limited (desktop app) | **In scope** (full local DB, server room app) |
+| Multi-location management | Basic | **In scope** (20+ locations, city grouping) |
+
+---
+
+## 15.4 Deferral vs. Never
 
 | Item | Classification |
 |------|---------------|
-| Parking slot-level tracking | Deferred to v2 |
-| Monthly subscription billing | Deferred to v2 |
-| Driver-facing portal | Deferred to v2 |
-| Hardware gate integration | Deferred to v2 |
-| Push notifications | Deferred to v2 |
-| Mixed payment | Deferred to v2 |
+| License plate recognition | Deferred to v3 |
+| Mobile app for drivers | Deferred to v3 |
+| Monthly subscription billing | Deferred to v3 |
+| Parking slot-level tracking | Deferred to v3 |
+| Multi-tenant support | Deferred to v3 |
+| Cash payments | Never (automated system) |
+| Mixed payment | Deferred to v3 |
 | Multi-currency | Deferred, low priority |
 | EV charging | Deferred, low priority |
-| Self-service kiosks | Deferred, dependent on hardware |
-| Automated payment callbacks | Deferred to v1.1 (high value, moderate complexity) |
+| Push notifications | Deferred to v3 |
+
+---
+
+*End of Chapter 15 — Out of Scope (v2)*

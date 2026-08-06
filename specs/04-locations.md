@@ -2,10 +2,12 @@
 
 ## 4.1 Overview
 
-A **Location** represents a single physical parking facility. The system
-manages multiple locations under one administrative instance. Each location is
-independently configured with its own rates, capacity, and assigned operators,
-but all locations are visible and manageable from the central web dashboard.
+A **Location** represents a single physical parking facility. In v2, each location has:
+- 2-10 automated gates (entry/exit).
+- 1 server room app (mini PC in server room).
+- 2-3 server room staff + 1 leader.
+
+The system manages 20+ locations for AMB (first tenant), grouped by city. All locations are visible and manageable from the central web dashboard.
 
 ---
 
@@ -14,149 +16,136 @@ but all locations are visible and manageable from the central web dashboard.
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | UUID | System-generated unique identifier |
-| `name` | String | Human-readable name (e.g. "Grand Mall Parking") |
-| `code` | String | Short unique identifier used in receipts and reports (e.g. `GMP-01`) |
+| `name` | String | Human-readable name (e.g., "AMB Parking Central") |
+| `code` | String | Short unique identifier (e.g., `AMB-CENTRAL`) |
 | `address` | String | Full street address |
-| `city` | String | City |
+| `city` | String | City (used for grouping in dashboard) |
 | `status` | Enum | `ACTIVE` or `INACTIVE` |
-| `capacity` | JSON | Total slot count per vehicle type (see 4.3) |
 | `created_at` | Timestamp | When the location was added |
 | `updated_at` | Timestamp | Last modified |
 
 ---
 
-## 4.3 Capacity Configuration
+## 4.3 Location Components
 
-Each location defines a capacity per vehicle type. This is used for occupancy percentage calculations in the dashboard.
+Each location consists of:
 
-```json
-{
-  "CAR": 100,
-  "MOTO": 50,
-  "TRUCK": 20
-}
-```
+### Gates
+- 2-10 automated gates per location.
+- Each gate is either ENTRY or EXIT.
+- Each gate configured with vehicle type (CAR, MOTO, TRUCK, or ALL).
+- Gate hardware: barrier, thermal printer (entry), QR scanner + payment terminal (exit), sensors.
+- Gate app runs on mini PC at each gate.
 
-- Capacity values are informational — the system does not hard-block check-ins when capacity is reached in v1.
-- Occupancy percentage = `(active sessions of type / capacity of type) × 100`
-- If capacity is not set for a vehicle type, occupancy % is shown as `N/A`.
+### Server Room App
+- 1 server room app per location.
+- Runs on mini PC in server room.
+- Local SQLite database (configs, sessions, transactions).
+- Manages all gates at location.
+- Syncs to cloud backend every 1 minute.
 
----
-
-## 4.4 Rate Configuration per Location
-
-Each location has its own rate table per vehicle type and rate model.
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `location_id` | UUID | FK to location |
-| `vehicle_type` | Enum | CAR, MOTO, TRUCK |
-| `first_hour_rate` | Decimal | Fee for the first hour (or fraction) |
-| `subsequent_hourly_rate` | Decimal | Fee per hour after the first hour |
-| `daily_flat_rate` | Decimal | Maximum daily cap; applies when total exceeds this |
-| `effective_from` | Date | When this rate becomes active |
-| `effective_until` | Date | Optional end date (null = indefinite) |
-
-### Rate Calculation Logic
-1. Calculate duration in hours (round up to next full hour; minimum 1 hour).
-2. Apply `first_hour_rate` for the first hour.
-3. Apply `subsequent_hourly_rate` × (duration_hours - 1) for remaining hours.
-4. Sum both; if result > `daily_flat_rate`, apply `daily_flat_rate` instead.
-5. The applicable rate is the one where `effective_from <= check_in_date <= effective_until`.
-
-### Example Rate Table
-
-| Vehicle Type | First Hour | Subsequent /hr | Daily Flat Rate |
-|-------------|-----------|---------------|----------------|
-| CAR | Rp 5,000 | Rp 3,000 | Rp 30,000 |
-| MOTO | Rp 2,000 | Rp 1,000 | Rp 15,000 |
-| TRUCK | Rp 15,000 | Rp 10,000 | Rp 100,000 |
+### Staff
+- 2-3 server room staff per location.
+- 1 leader per location.
+- Monitor gates, handle exceptions, run offline SOP.
 
 ---
 
-## 4.5 Operator Assignment
-
-- Operators are assigned to one or more locations via the `user_locations` table (see Chapter 3).
-- An operator can only check in vehicles at their assigned location(s).
-- If an operator is assigned to multiple locations, they select the active location at login or session start.
-
----
-
-## 4.6 Location Management
-
-### Owner / Admin Capabilities
-
-Only **Owners** and **System Administrators** can:
-- Create a new location
-- Edit location name, address, code, capacity
-- Activate or deactivate a location
-- Manage rate configurations per vehicle type
-- Assign or remove operators from a location
-
-### Manager Capabilities
-
-**Facility Managers** have supervisory access only:
-- View location details and assigned operators
-- View occupancy and session activity
-- Authorize manual gate open (via incident workflow)
-- Authorize void transactions (sign-off with PIN)
-- Report incidents and operational issues
-- View reports for their assigned location(s)
-
-Managers **cannot**:
-- Create, edit, or deactivate locations
-- Modify rate configurations
-- Assign operators to locations
-
-### Deactivating a Location
-
-When a location is deactivated (by Owner/Admin):
-- Prevents new sessions from being opened at that location.
-- Existing `ACTIVE` sessions at the location remain open and must be manually closed.
-- Historical data (sessions, transactions, reports) is preserved.
-- Operators assigned to that location can no longer select it as their active location.
-
----
-
-## 4.7 Dashboard Aggregation
-
-The web dashboard supports two viewing modes:
-
-| Mode | Description |
-|------|-------------|
-| **Single Location** | Shows data for one selected location |
-| **All Locations** | Aggregates data across all locations the user has access to |
-
-Metrics available per location or aggregated:
-- Current active sessions (by vehicle type)
-- Occupancy percentage
-- Today's revenue
-- Open incidents count
-
----
-
-## 4.8 Data Model
+## 4.4 Location Hierarchy
 
 ```
-locations
-  id                UUID, primary key
-  name              VARCHAR(150), not null
-  code              VARCHAR(20), unique, not null
-  address           TEXT
-  city              VARCHAR(100)
-  status            ENUM('ACTIVE', 'INACTIVE'), default ACTIVE
-  capacity          JSONB  -- { "CAR": 100, "MOTO": 50, "TRUCK": 20 }
-  created_at        TIMESTAMP
-  updated_at        TIMESTAMP
-
-location_rates
-  id                UUID, primary key
-  location_id       UUID, FK → locations.id
-  vehicle_type      ENUM('CAR', 'MOTO', 'TRUCK'), not null
-  hourly_rate       NUMERIC(12, 2), not null
-  daily_flat_rate   NUMERIC(12, 2), not null
-  effective_from    DATE, not null
-  effective_until   DATE, nullable
-  created_by        UUID, FK → users.id
-  created_at        TIMESTAMP
+AMB (Tenant)
+├── Jakarta (City)
+│   ├── Location A (2 entry, 2 exit gates)
+│   ├── Location B (1 entry, 1 exit gate)
+│   └── Location C (3 entry, 2 exit gates)
+├── Surabaya (City)
+│   ├── Location D (2 entry, 2 exit gates)
+│   └── Location E (1 entry, 1 exit gate)
+└── Bandung (City)
+    └── Location F (2 entry, 2 exit gates)
 ```
+
+**Dashboard Filtering:**
+- Locations grouped by city.
+- Filter by city (dropdown).
+- View all locations (owner/admin only).
+
+---
+
+## 4.5 Location Lifecycle
+
+### Creation
+1. Admin creates location via dashboard (name, code, address, city).
+2. System creates default shift config (3 shifts/day).
+3. System creates default rate config (per vehicle type).
+4. Location status: `ACTIVE`.
+
+### Configuration
+1. Admin configures rates (per vehicle type, versioned).
+2. Admin configures shifts (time windows, versioned).
+3. Admin installs server room app (USB).
+4. Admin installs gate apps (USB).
+5. Gate apps discover via mDNS, register as `UNREGISTERED`.
+6. Admin configures gates via dashboard (vehicle type, gate type).
+7. Gates become `OPERATIONAL`.
+
+### Deactivation
+1. Admin deactivates location via dashboard.
+2. Location status: `INACTIVE`.
+3. Gates stop accepting new sessions.
+4. Existing sessions can still close.
+5. Location hidden from dashboard (unless filter: all).
+
+---
+
+## 4.6 Location Management (Dashboard)
+
+### Location List View
+
+| Column | Description |
+|--------|-------------|
+| Name | Location name |
+| Code | Short code |
+| City | City (grouped) |
+| Status | ACTIVE / INACTIVE |
+| Gates | Count of gates (online/total) |
+| Revenue Today | Total revenue today |
+| Actions | Edit, Deactivate |
+
+### Location Detail View
+
+- Location info (name, code, address, city).
+- Gate list (status, vehicle type, last seen).
+- Rate configs (versioned, editable).
+- Shift configs (versioned, editable).
+- Reports (revenue, occupancy, transactions).
+- Audit log (location-specific).
+
+---
+
+## 4.7 Design Decisions
+
+**Why no capacity tracking?**
+- Automated system doesn't need to track slots.
+- No operators to manage capacity.
+- Can be added later if needed (sensors).
+
+**Why group by city?**
+- AMB has 20+ locations across multiple cities.
+- Easier to manage and report by region.
+- Matches AMB's organizational structure.
+
+**Why 1 server room app per location?**
+- Single source of truth for location.
+- Manages all gates at location.
+- Simplifies sync and monitoring.
+
+**Why 2-10 gates per location?**
+- Flexible (small to large locations).
+- Each gate independent (stateless).
+- Server room app manages all gates.
+
+---
+
+*End of Chapter 4 — Locations (v2)*

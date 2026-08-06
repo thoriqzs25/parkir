@@ -2,118 +2,214 @@
 
 ## 8.1 Overview
 
-A thermal receipt is automatically printed when a parking session is successfully closed. The receipt serves as the driver's proof of payment and the operator's confirmation that the transaction was recorded. Receipts are printed from the operator's desktop app to a thermal printer connected to the operator's workstation.
+In v2, there are two types of printed documents:
+
+1. **Entry Ticket** — Automatic thermal receipt dispensed on entry (QR code + session info).
+2. **Exit Receipt** — Optional thermal receipt printed on exit (driver presses button).
+
+Both are printed by the gate app via thermal printer (Epson). No operator involvement.
 
 ---
 
-## 8.2 Print Trigger
+## 8.2 Entry Ticket
+
+### Print Trigger
 
 | Trigger | Behavior |
 |---------|----------|
-| Session moves to `CLOSED` | Receipt print job sent automatically |
-| Operator manually re-prints | Available from session detail view; requires `sessions:view` permission |
+| Session created (state: ACTIVE) | Entry ticket printed automatically |
 
-- If the printer is unavailable at the time of session close, the system shows an error but **does not block the session from closing**. The operator can retry printing from the session detail screen.
-- Re-print is allowed any number of times; re-printed receipts are marked `REPRINT` on the document.
+- Printed by gate app (entry gate).
+- Uses Epson thermal printer (ESC/POS commands).
+- If printer unavailable: gate stays closed, alert triggered.
 
----
+### Ticket Layout
 
-## 8.3 Receipt Layout
-
-Thermal receipt width: **58mm** (standard) or **80mm** (wider format) — configurable per terminal.
+Thermal receipt width: **58mm** (standard).
 
 ```
 ================================
         [LOCATION NAME]
       [Location Address]
 ================================
-Receipt No : GMP01-20250315-00042
-Date       : 15 Mar 2025  14:32
-Operator   : Budi Santoso
+Ticket No  : AMB-CENTRAL-20260806-001
+Date       : 06 Aug 2026  10:30
+Vehicle    : Motorcycle
 --------------------------------
-Plate      : B 1234 XYZ
-Vehicle    : Car
+
+      [QR CODE - 200x200px]
+
 --------------------------------
-Check-in   : 15 Mar 2025  11:00
-Check-out  : 15 Mar 2025  14:32
-Duration   : 4 hours
---------------------------------
-Rate       : Rp 5,000 / hour
-Fee        : Rp 20,000
---------------------------------
-Payment    : CASH
-Tendered   : Rp 25,000
-Change     : Rp  5,000
+Kunci kendaraan anda dengan rapat.
+Jangan tinggalkan karcis parkir di
+dalam kendaraan Anda.
 ================================
-     Thank you for parking!
+```
+
+### QR Code Content
+
+QR code encodes JSON:
+
+```json
+{
+  "session_id": "uuid-v4",
+  "location_id": "uuid-v4",
+  "timestamp": "2026-08-06T10:30:00Z",
+  "vehicle_type": "MOTO"
+}
+```
+
+**QR Code Specs:**
+- Size: 200x200 pixels (printable on 58mm paper).
+- Error correction: Medium (25%).
+- Encoding: UTF-8.
+
+### Ticket Number Format
+
+```
+{LOCATION_CODE}-{DATE}-{SEQUENCE}
+
+Example: AMB-CENTRAL-20260806-001
+```
+
+- Location code: from location config.
+- Date: YYYYMMDD.
+- Sequence: daily sequence number (001, 002, ...).
+
+---
+
+## 8.3 Exit Receipt (Optional)
+
+### Print Trigger
+
+| Trigger | Behavior |
+|---------|----------|
+| Driver presses receipt button | Exit receipt printed on demand |
+
+- Printed by gate app (exit gate).
+- Optional (driver can skip).
+- Available for 30 seconds after gate opens.
+- If printer unavailable: receipt not printed, but session still closes.
+
+### Receipt Layout
+
+Thermal receipt width: **58mm** (standard).
+
+```
+================================
         [LOCATION NAME]
+      [Location Address]
+================================
+Receipt No : AMB-CENTRAL-20260806-001
+Date       : 06 Aug 2026  14:32
+--------------------------------
+Vehicle    : Motorcycle
+--------------------------------
+Check-in   : 06 Aug 2026  10:30
+Check-out  : 06 Aug 2026  14:32
+Duration   : 4 hours 2 minutes
+--------------------------------
+Fee        : Rp 8,000
+Payment    : E-Money
+Shift      : Shift #15
+--------------------------------
+Transaction: uuid-v4
+Config     : rate_v42
+================================
+   Terima kasih atas kunjungan Anda
 ================================
 ```
 
-For digital payments, the `Tendered` and `Change` lines are replaced with:
+### Receipt Fields
 
-```
-Payment    : DIGITAL (QRIS)
-Ref        : TRX-20250315-88291
-```
-
----
-
-## 8.4 Receipt Fields
-
-| Field | Source | Notes |
-|-------|--------|-------|
-| Location name | `locations.name` | |
-| Location address | `locations.address` | |
-| Receipt number | `transactions.receipt_number` | Format: `[CODE]-[YYYYMMDD]-[SEQ]` |
-| Date & time | `transactions.check_out_at` | Formatted for local timezone |
-| Operator name | `users.name` | Operator who closed the session |
-| Plate number | `transactions.plate` | |
-| Vehicle type | `transactions.vehicle_type` | Human-readable (e.g. "Car") |
-| Check-in time | `transactions.check_in_at` | |
-| Check-out time | `transactions.check_out_at` | |
-| Duration | `transactions.duration_hours` | e.g. "4 hours" |
-| Rate | `transactions.rate_hourly` | e.g. "Rp 5,000 / hour" |
-| Fee | `transactions.fee_amount` | |
-| Payment method | `transactions.payment_method` | |
-| Amount tendered | `transactions.amount_tendered` | Cash only |
-| Change | `transactions.change_amount` | Cash only |
-| Payment reference | `transactions.payment_reference` | Digital only |
-| Reprint indicator | Runtime flag | Added if this is a re-print |
+| Field | Description |
+|-------|-------------|
+| Receipt No | Same as ticket number (entry ticket) |
+| Date | Check-out date/time |
+| Vehicle | Vehicle type (from gate config) |
+| Check-in | Check-in date/time |
+| Check-out | Check-out date/time |
+| Duration | Parking duration (hours, minutes) |
+| Fee | Total fee (in Rupiah) |
+| Payment | Payment method (E-Money, Flazz, etc.) |
+| Shift | Shift number (continuous) |
+| Transaction | Transaction ID (UUID) |
+| Config | Rate config version (audit trail) |
 
 ---
 
-## 8.5 Printer Integration
+## 8.4 Re-Print
 
-- Printer communication uses **ESC/POS** protocol (industry standard for thermal printers).
-- Printer is configured per terminal (operator workstation) in the desktop app settings.
-- Configuration:
-  - Connection type: USB / Serial / Network (TCP/IP)
-  - Paper width: 58mm / 80mm
-  - Character encoding: UTF-8
-- Printer status is polled before printing; if unavailable, operator is warned.
+### Entry Ticket
+- Not re-printable (driver must exit to get receipt).
+- If ticket lost: staff handles via offline SOP.
 
-### Supported Printer Models (Recommended)
-Any ESC/POS-compatible thermal printer. Common examples:
-- Epson TM-T82
-- Epson TM-T88
-- Xprinter XP-58 / XP-80
-- BIXOLON SRP-350
+### Exit Receipt
+- Re-print available for 30 seconds after gate opens.
+- Driver presses receipt button again.
+- Re-printed receipts marked `REPRINT` on document.
+- After 30 seconds: receipt no longer available.
 
 ---
 
-## 8.6 Voided Transaction Receipt
+## 8.5 Printer Configuration
 
-- If a transaction is voided after a receipt was printed, **no automatic reprint** is triggered.
-- A manager or operator can manually print a **VOID NOTICE** from the transaction detail view.
-- The void notice uses the same receipt format but with a `** VOID **` header and the void reason printed.
+### Printer Type
+- Epson thermal printer (existing AMB hardware).
+- Communication: USB or serial (via hub).
+- Paper width: 58mm (standard).
+
+### Printer Commands
+- ESC/POS command set.
+- Gate app sends commands via HAL (hardware abstraction layer).
+
+### Printer Status
+- Gate app monitors printer status (online/offline, paper status).
+- If printer offline: alert triggered, gate stays closed (entry) or receipt not printed (exit).
 
 ---
 
-## 8.7 Offline Receipt Printing
+## 8.6 Receipt Number Sequence
 
-When the desktop app is in offline mode:
-- Receipts can still be printed using locally cached rate and session data.
-- Receipt numbers in offline mode use a temporary format: `[LOCATION_CODE]-OFFLINE-[LOCAL_SEQ]`.
-- Once the session syncs to the backend, the receipt number is updated to the official format.
-- If the driver needs an official receipt for a synced transaction, the operator can re-print from the session detail view.
+### Entry Ticket
+- Sequence per location per day.
+- Format: `{LOCATION_CODE}-{YYYYMMDD}-{SEQ}`.
+- Sequence resets daily (001, 002, ...).
+- Stored in server room app (local DB).
+
+### Exit Receipt
+- Same number as entry ticket (no separate sequence).
+- Links exit receipt to entry ticket.
+
+---
+
+## 8.7 Design Decisions
+
+**Why QR code on entry ticket?**
+- Encodes session data (no manual entry).
+- Fast scanning at exit (< 1 second).
+- Tamper-resistant (encrypted or signed).
+- Standard practice (matches AMB's current system).
+
+**Why optional exit receipt?**
+- Reduces paper waste (not all drivers want receipt).
+- Faster exit (no waiting for receipt).
+- Driver can press button if needed.
+
+**Why no operator info on receipt?**
+- No operators (fully automated).
+- Gate ID could be added (for audit).
+
+**Why config version on receipt?**
+- Audit trail (which rate was used).
+- Debugging (if fee calculation issue).
+- Compliance (proof of rate used).
+
+**Why shift number on receipt?**
+- Audit trail (which shift session was in).
+- Reporting (aggregate by shift).
+- Reconciliation (shift-based reporting).
+
+---
+
+*End of Chapter 8 — Receipt (v2)*

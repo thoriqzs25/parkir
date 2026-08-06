@@ -2,119 +2,202 @@
 
 ## 2.1 Goal Summary
 
-The system is built around five primary goals. Each goal maps to one or more features and user-facing modules.
+PARKIR v2 is built to replace AMB's expensive third-party automated parking system with a cost-effective, fully automated solution. The system is built around five primary goals.
 
 | # | Goal | Primary Users | Key Modules |
 |---|------|--------------|-------------|
-| G1 | Slot Occupancy Tracking | Operators, Managers | Sessions, Dashboard |
-| G2 | Payment & Billing | Operators, Managers | Payments, Rates, Receipts |
-| G3 | Reporting & Analytics | Managers, Admins | Reports Dashboard |
-| G4 | Incident Management | Operators, Managers | Incident Module |
-| G5 | System Observability | Admins, Managers | Health Monitor, Audit Log, Alerts |
+| G1 | Automated Entry/Exit | Drivers (indirect) | Gate Apps, Sessions |
+| G2 | Tap-to-Go Payment | Drivers (indirect) | Payments, Rates |
+| G3 | Multi-Location Management | AMB Admins, Managers | Dashboard, Reports |
+| G4 | Exception Handling | Server Room Staff | Incidents, Alerts |
+| G5 | System Observability | Developers, Admins | Health Monitor, Audit Log, Alerts |
 
 ---
 
-## 2.2 G1 — Slot Occupancy Tracking
+## 2.2 G1 — Automated Entry/Exit
 
 ### Intent
-Provide real-time visibility into how many vehicles are currently parked at each location, broken down by vehicle type.
+Provide fully automated, reliable, and fast entry/exit flows for drivers. No human operators at gates.
 
 ### Functional Requirements
-- The system must record a check-in timestamp when a vehicle enters.
-- The system must record a check-out timestamp when a vehicle exits.
-- The current occupancy count per location must be derivable at any point in time from active sessions.
-- The web dashboard must display live occupancy per location.
-- Occupancy must be broken down by vehicle type (CAR, MOTO, TRUCK).
-- Operators must be able to look up whether a specific plate is currently checked in.
+- System must dispense QR-coded ticket on entry (thermal printer).
+- System must read QR ticket on exit (fixed-mount scanner).
+- System must calculate fee automatically (server room app).
+- System must open gate automatically after payment.
+- Entry flow must complete in < 5 seconds (button press to gate open).
+- Exit flow must complete in < 10 seconds (QR scan to gate open).
+- System must work offline (server room app has local DB).
+- System must handle hardware failures gracefully (gate stays closed, alert triggered).
 
 ### Acceptance Criteria
-- [ ] Checking in a vehicle increases the active session count for that location by 1.
-- [ ] Checking out a vehicle decreases the active session count for that location by 1.
-- [ ] Dashboard occupancy count matches the count of `ACTIVE` sessions per location at any given moment.
-- [ ] Plate lookup returns the active session details if the vehicle is checked in.
+- [ ] Vehicle enters loop → button press → ticket dispensed → gate opens (< 5s).
+- [ ] Driver scans QR → fee displayed → payment processed → gate opens (< 10s).
+- [ ] System continues operating without internet (offline mode).
+- [ ] Hardware failure → gate stays closed → alert triggered.
+- [ ] 95% uptime (hardware-dependent).
+
+### Success Metrics
+- Entry flow time: < 5 seconds (p95).
+- Exit flow time: < 10 seconds (p95).
+- Hardware uptime: 95%.
+- Zero operator intervention for normal flows.
 
 ---
 
-## 2.3 G2 — Payment & Billing
+## 2.3 G2 — Tap-to-Go Payment
 
 ### Intent
-Accurately calculate parking fees and record payments using flexible rate models and multiple payment methods.
+Provide fast, cashless payment via e-money/Flazz cards. No cash handling.
 
 ### Functional Requirements
-- Fee must be calculated at check-out based on duration and applicable rate (pay-on-exit model).
-- The system must support the following rate components: first-hour rate, subsequent hourly rate, and daily flat rate (as a price ceiling).
-- Rates must be configurable per location and per vehicle type.
-- Daily flat rate must automatically apply when the hourly total exceeds the configured daily cap.
-- Payment must be recorded as either cash or digital.
-- A transaction record must be created for every closed session.
-- Voided transactions must be excluded from all revenue totals.
+- Payment must be tap-to-go only (e-money, Flazz).
+- Payment terminal provided by third-party vendor.
+- PARKIR receives payment completion signal from vendor.
+- Fee calculated using local rate config (server room app).
+- Rate config versioned (audit trail).
+- Transaction record created for every closed session.
+- Voided transactions excluded from revenue totals.
 
 ### Acceptance Criteria
-- [ ] A 2.5-hour CAR session at Rp 5,000/hour is billed Rp 15,000 (rounding up to next full hour).
-- [ ] A 14-hour session where hourly total exceeds the daily cap applies the daily flat rate instead.
-- [ ] A session cannot be closed without a payment method and amount being recorded.
-- [ ] Voided transactions do not appear in daily revenue totals.
+- [ ] Driver taps card → payment processed → gate opens (< 3s).
+- [ ] Payment failure → gate stays closed → error displayed.
+- [ ] Transaction recorded with config version (audit trail).
+- [ ] Voided transactions excluded from reports.
+
+### Success Metrics
+- Payment processing time: < 3 seconds (p95).
+- Payment success rate: > 99%.
+- Zero cash handling.
 
 ---
 
-## 2.4 G3 — Reporting & Analytics
+## 2.4 G3 — Multi-Location Management
 
 ### Intent
-Give managers and admins data-driven insight into revenue performance, occupancy trends, and operator activity.
+Provide central management for AMB's 20+ parking locations. Grouped by city. Real-time monitoring and reporting.
 
 ### Functional Requirements
-- Reports must be filterable by location, date range, and vehicle type.
-- The system must provide: daily revenue summary, occupancy over time, per-vehicle-type breakdown, and operator activity log.
-- All reports must be viewable in the web dashboard.
-- Revenue reports must distinguish between cash and digital payments.
-- Operator activity reports must cover: check-ins, check-outs, payments, incidents, and adjustments.
+- Dashboard must support 20+ locations.
+- Locations grouped by city (filterable).
+- Real-time gate status monitoring (online/offline/busy).
+- Revenue reports (per location + total).
+- Occupancy reports (per location).
+- Transaction reports (with filters).
+- Export to CSV/Excel.
+- Gate configuration via dashboard (vehicle type, gate type).
+- Rate configuration per location (versioned).
+- User management (staff, managers, admins, owners).
 
 ### Acceptance Criteria
-- [ ] A daily revenue report for a given date shows total revenue matching the sum of all non-voided transactions that day.
-- [ ] Occupancy over time graph shows correct hourly occupancy for the selected period.
-- [ ] Per-vehicle-type breakdown correctly attributes sessions and revenue to CAR, MOTO, TRUCK.
-- [ ] Operator activity log shows every action by the selected operator in the selected date range.
+- [ ] Dashboard loads all 20+ locations (< 2s).
+- [ ] Real-time gate status updates (< 30s latency).
+- [ ] Revenue reports accurate (match transaction records).
+- [ ] Export to CSV works for all reports.
+- [ ] Gate configuration flows to server room app → gate app.
+
+### Success Metrics
+- Dashboard page load time: < 2 seconds.
+- Report generation time: < 5 seconds.
+- Data accuracy: 100% (reports match transactions).
+- User satisfaction: > 80%.
 
 ---
 
-## 2.5 G4 — Incident Management
+## 2.5 G4 — Exception Handling
 
 ### Intent
-Provide a structured workflow for operators to report problems and for managers to resolve them, with a complete record of every incident.
+Enable server room staff to monitor gates and handle exceptions (hardware failures, payment issues) quickly.
 
 ### Functional Requirements
-- Operators must be able to open an incident from the desktop app at any time.
-- Incidents must be typed (STUCK_AT_GATE, PAYMENT_DISPUTE, OPERATOR_ERROR, SYSTEM_DOWNTIME).
-- Each incident must be linked to a session where applicable.
-- Incidents must be visible to managers in the web dashboard.
-- Managers must be able to add resolution notes and close incidents.
-- Incident history must be retained and searchable.
+- Server room app monitors all gates at location (2-10 gates).
+- Audio alert when gate needs assistance ("Gate {gate_id} needs assistance").
+- Visual alert on staff monitor (gate status grid).
+- Staff walks to gate, handles exception (offline SOP if needed).
+- Incident logged (hardware failure, payment failure, QR unreadable).
+- Incident resolution tracked.
 
 ### Acceptance Criteria
-- [ ] An operator can file an incident in under 30 seconds from the desktop app.
-- [ ] A filed incident appears in the manager's dashboard immediately (or upon next sync in offline mode).
-- [ ] A manager can close an incident with resolution notes; the incident shows `RESOLVED` status.
-- [ ] Closed incidents remain visible in the incident history log.
+- [ ] Gate failure → audio alert within 5 seconds.
+- [ ] Staff responds to alert (< 2 minutes).
+- [ ] Incident logged with gate_id, type, timestamp.
+- [ ] Incident resolution tracked (open → resolved).
+
+### Success Metrics
+- Alert response time: < 2 minutes.
+- Incident resolution time: < 30 minutes.
+- Staff satisfaction: > 80%.
 
 ---
 
 ## 2.6 G5 — System Observability
 
 ### Intent
-Give administrators and managers real-time awareness of system health, a
-complete audit trail of all actions, and automated alerting when anomalies
-occur.
+Provide comprehensive monitoring, logging, and alerting for developers and admins.
 
 ### Functional Requirements
-- The system must expose a health status dashboard covering: API, database, printers, payment gateway.
-- Every state-changing action must produce an immutable audit log entry.
-- Audit logs must be queryable by actor, action type, entity, and date range.
-- Automated alerts must fire when configured anomaly thresholds are exceeded.
-- Per-operator performance metrics must be available to managers.
+- Centralized logging (Loki) for all components.
+- Metrics collection (Prometheus) for all components.
+- Visualization (Grafana) for system health.
+- Alert routing: email/Telegram for critical alerts, audio for gate alerts.
+- Audit log (immutable, 2-year retention).
+- Health checks: gate apps (15s), server room apps (20s), cloud backend (15s).
 
 ### Acceptance Criteria
-- [ ] Every session create, close, void, and reassign action produces an audit log entry with actor, timestamp, and entity reference.
-- [ ] Audit log entries cannot be deleted by any user, including system admins.
-- [ ] An alert fires when a session remains `ACTIVE` for more than 24 hours.
-- [ ] An alert fires when a session is closed without a linked transaction (unpaid exit).
-- [ ] System health dashboard updates within 30 seconds of a component going down.
+- [ ] All logs centralized in Loki (searchable).
+- [ ] Metrics visible in Grafana (dashboards).
+- [ ] Critical alerts sent to email + Telegram (< 1 min).
+- [ ] Gate alerts played as audio (< 5s).
+- [ ] Audit log immutable (no deletes/updates).
+
+### Success Metrics
+- Log retention: 30 days (Loki).
+- Alert delivery time: < 1 minute.
+- System uptime: 99.5% (cloud backend).
+- Mean time to detect (MTTD): < 5 minutes.
+
+---
+
+## 2.7 Business Goals
+
+### Cost Reduction
+- Replace expensive third-party system.
+- Per-location monthly fee model.
+- Target: 50% cost reduction vs current system.
+
+### Scalability
+- Support 20+ locations (AMB).
+- Support 2-10 gates per location.
+- Support future expansion (100+ locations).
+
+### Reliability
+- 95% uptime (hardware-dependent).
+- Offline operation (gates work without internet).
+- Fast recovery (replacement mini PCs via USB).
+
+### Maintainability
+- Stateless gate apps (easy to replace).
+- Local DB in server room (easy to backup/restore).
+- USB deployment (no complex installation).
+
+---
+
+## 2.8 Non-Goals (v2)
+
+**Not in scope for v2:**
+- License plate recognition (LPR/ANPR).
+- Mobile app for drivers.
+- Monthly subscriptions or passes.
+- Individual parking bay tracking.
+- Multi-tenant (multiple companies).
+- Cash payments.
+- Operator-assisted flows.
+
+**May be in scope for v3:**
+- License plate recognition (security/audit).
+- Mobile app (driver notifications, reservations).
+- Monthly subscriptions (regular parkers).
+- Multi-tenant (sell to other companies).
+
+---
+
+*End of Chapter 2 — System Goals (v2)*
