@@ -27,6 +27,7 @@ func TestOfflineSessionSync(t *testing.T) {
 		ID:          offlineSessionID,
 		LocationID:  locationID,
 		OperatorID:  operatorID,
+		ShiftNumber: 1,
 		Plate:       "BOFFLINE1",
 		CityCode:    "B",
 		VehicleType: "CAR",
@@ -40,65 +41,6 @@ func TestOfflineSessionSync(t *testing.T) {
 	}
 	if !session.OfflineSync {
 		t.Fatal("expected offline_sync to be true")
-	}
-	if session.SyncConflict {
-		t.Fatal("unexpected sync_conflict on first offline session")
-	}
-}
-
-func TestOfflineSyncConflictDuplicatePlate(t *testing.T) {
-	tdb := testutil.NewTestDB(t)
-	defer tdb.Cleanup()
-
-	ctx := testutil.Ctx()
-	s := tdb.Store
-
-	locationID := seedLocation(ctx, t, s)
-	operatorID := seedOperator(ctx, t, s)
-	seedRate(ctx, t, s, locationID, operatorID)
-	seedShiftConfig(ctx, t, s, locationID)
-
-	plate := "BCONFLICT1"
-
-	// Online session checked in first.
-	_, err := s.CreateSession(ctx, store.CreateSessionInput{
-		LocationID:  locationID,
-		OperatorID:  operatorID,
-		ShiftNumber: 1,
-		Plate:       plate,
-		CityCode:    "B",
-		VehicleType: "CAR",
-	})
-	if err != nil {
-		t.Fatalf("create online session: %v", err)
-	}
-
-	// Offline session with same plate creates a conflict.
-	session, err := s.CreateOfflineSession(ctx, store.CreateOfflineSessionInput{
-		ID:          generateUUID(),
-		LocationID:  locationID,
-		OperatorID:  operatorID,
-		Plate:       plate,
-		CityCode:    "B",
-		VehicleType: "CAR",
-		CheckInAt:   time.Now().UTC().Add(-time.Hour),
-	})
-	if err != nil {
-		t.Fatalf("create offline session: %v", err)
-	}
-	if !session.SyncConflict {
-		t.Fatal("expected sync_conflict when duplicate active plate exists")
-	}
-
-	conflicts, total, err := s.ListSyncConflicts(ctx, store.ListSyncConflictsFilters{LocationID: locationID}, 10, 0)
-	if err != nil {
-		t.Fatalf("list conflicts: %v", err)
-	}
-	if total != 1 {
-		t.Fatalf("expected 1 conflict, got %d", total)
-	}
-	if conflicts[0].ID != session.ID {
-		t.Fatalf("expected conflict session id %s, got %s", session.ID, conflicts[0].ID)
 	}
 }
 
@@ -119,6 +61,7 @@ func TestOfflinePaymentSync(t *testing.T) {
 		ID:          sessionID,
 		LocationID:  locationID,
 		OperatorID:  operatorID,
+		ShiftNumber: 1,
 		Plate:       "BOFFPAY1",
 		CityCode:    "B",
 		VehicleType: "CAR",
@@ -173,62 +116,6 @@ func TestOfflinePaymentSync(t *testing.T) {
 	}
 	if session.State != "CLOSED" {
 		t.Fatalf("expected CLOSED, got %s", session.State)
-	}
-}
-
-func TestResolveSyncConflictVoidOffline(t *testing.T) {
-	tdb := testutil.NewTestDB(t)
-	defer tdb.Cleanup()
-
-	ctx := testutil.Ctx()
-	s := tdb.Store
-
-	locationID := seedLocation(ctx, t, s)
-	operatorID := seedOperator(ctx, t, s)
-	managerID := seedOperator(ctx, t, s)
-	seedRate(ctx, t, s, locationID, operatorID)
-	seedShiftConfig(ctx, t, s, locationID)
-
-	plate := "BRESOLVE1"
-	_, err := s.CreateSession(ctx, store.CreateSessionInput{
-		LocationID:  locationID,
-		OperatorID:  operatorID,
-		ShiftNumber: 1,
-		Plate:       plate,
-		CityCode:    "B",
-		VehicleType: "CAR",
-	})
-	if err != nil {
-		t.Fatalf("create online session: %v", err)
-	}
-
-	session, err := s.CreateOfflineSession(ctx, store.CreateOfflineSessionInput{
-		ID:          generateUUID(),
-		LocationID:  locationID,
-		OperatorID:  operatorID,
-		Plate:       plate,
-		CityCode:    "B",
-		VehicleType: "CAR",
-		CheckInAt:   time.Now().UTC().Add(-time.Hour),
-	})
-	if err != nil {
-		t.Fatalf("create offline session: %v", err)
-	}
-	if !session.SyncConflict {
-		t.Fatal("expected sync conflict")
-	}
-
-	resolved, err := s.ResolveSyncConflict(ctx, store.ResolveSyncConflictInput{
-		SessionID:  session.ID,
-		Action:     store.ResolveConflictVoidOffline,
-		VoidReason: "duplicate plate",
-		ResolvedBy: managerID,
-	})
-	if err != nil {
-		t.Fatalf("resolve conflict: %v", err)
-	}
-	if resolved.State != "VOIDED" {
-		t.Fatalf("expected VOIDED, got %s", resolved.State)
 	}
 }
 

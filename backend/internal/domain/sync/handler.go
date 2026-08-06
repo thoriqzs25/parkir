@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/thoriqzs/PARKIR/backend/internal/errors"
 	"github.com/thoriqzs/PARKIR/backend/internal/middleware"
 	"github.com/thoriqzs/PARKIR/backend/internal/response"
 	"github.com/thoriqzs/PARKIR/backend/internal/store"
@@ -49,6 +48,7 @@ type OfflineSessionData struct {
 	ID          string    `json:"id" binding:"required,uuid"`
 	LocationID  string    `json:"location_id" binding:"required,uuid"`
 	OperatorID  string    `json:"operator_id" binding:"required,uuid"`
+	ShiftNumber int       `json:"shift_number" binding:"required,min=1"`
 	Plate       string    `json:"plate" binding:"required"`
 	CityCode    string    `json:"city_code"`
 	VehicleType string    `json:"vehicle_type" binding:"required"`
@@ -62,12 +62,11 @@ type BatchSyncRequest struct {
 
 // SyncResult describes the outcome of a single sync item.
 type SyncResult struct {
-	Type            string  `json:"type"`
-	SessionID       string  `json:"session_id,omitempty"`
-	TransactionID   string  `json:"transaction_id,omitempty"`
-	ReceiptNumber   string  `json:"receipt_number,omitempty"`
-	SyncConflict    bool    `json:"sync_conflict"`
-	Error           string  `json:"error,omitempty"`
+	Type          string `json:"type"`
+	SessionID     string `json:"session_id,omitempty"`
+	TransactionID string `json:"transaction_id,omitempty"`
+	ReceiptNumber string `json:"receipt_number,omitempty"`
+	Error         string `json:"error,omitempty"`
 }
 
 // BatchSyncResponse wraps all results for a batch.
@@ -81,13 +80,6 @@ func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 	sync.Use(middleware.RequirePermission("sessions:create"))
 	{
 		sync.POST("/batch", h.BatchSync)
-	}
-
-	conflicts := r.Group("/sync/conflicts")
-	conflicts.Use(middleware.RequirePermission("sessions:view"))
-	{
-		conflicts.GET("", h.ListConflicts)
-		conflicts.POST("/:id/resolve", middleware.RequirePermission("sessions:void"), h.ResolveConflict)
 	}
 }
 
@@ -129,6 +121,7 @@ func (h *Handler) processItem(ctx context.Context, item SyncItem) SyncResult {
 			ID:          data.ID,
 			LocationID:  data.LocationID,
 			OperatorID:  data.OperatorID,
+			ShiftNumber: data.ShiftNumber,
 			Plate:       normalizePlate(data.Plate),
 			CityCode:    normalizeCode(data.CityCode),
 			VehicleType: data.VehicleType,
@@ -139,7 +132,6 @@ func (h *Handler) processItem(ctx context.Context, item SyncItem) SyncResult {
 			return result
 		}
 		result.SessionID = session.ID
-		result.SyncConflict = session.SyncConflict
 
 	case "check_out":
 		if item.SessionID == "" || item.CheckOutAt == nil || item.FeeAmount == nil {
@@ -204,70 +196,6 @@ func normalizeCode(code string) string {
 		return "UNKNOWN"
 	}
 	return code
-}
-
-// ListConflicts returns sessions flagged with sync conflicts for manager review.
-func (h *Handler) ListConflicts(c *gin.Context) {
-	limit := parseInt(c.DefaultQuery("limit", "20"), 20)
-	offset := parseInt(c.DefaultQuery("offset", "0"), 0)
-
-	filters := store.ListSyncConflictsFilters{}
-	if loc := c.Query("location_id"); loc != "" {
-		filters.LocationID = loc
-	}
-
-	sessions, total, err := h.store.ListSyncConflicts(c.Request.Context(), filters, limit, offset)
-	if err != nil {
-		_ = c.Error(err)
-		response.InternalServerError(c)
-		return
-	}
-
-	response.OK(c, gin.H{
-		"items": sessions,
-		"meta":  response.Meta{Limit: limit, Offset: offset, Total: total},
-	})
-}
-
-// ResolveConflictRequest carries a manager's resolution for a conflict.
-type ResolveConflictRequest struct {
-	Action     string `json:"action" binding:"required,oneof=VOID_OFFLINE IGNORE"`
-	VoidReason string `json:"void_reason"`
-}
-
-// ResolveConflict applies a manager's resolution to a conflicting session.
-func (h *Handler) ResolveConflict(c *gin.Context) {
-	id := c.Param("id")
-
-	var req ResolveConflictRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		response.BadRequest(c, "INVALID_INPUT", err.Error())
-		return
-	}
-
-	actorID := middleware.GetUserID(c)
-	session, err := h.store.ResolveSyncConflict(c.Request.Context(), store.ResolveSyncConflictInput{
-		SessionID:  id,
-		Action:     store.ResolveSyncConflictAction(req.Action),
-		VoidReason: req.VoidReason,
-		ResolvedBy: actorID,
-	})
-	if err != nil {
-		switch err {
-		case errors.ErrNotFound:
-			response.NotFound(c, "session")
-		case errors.ErrInvalidState:
-			response.BadRequest(c, "INVALID_STATE", "session is not a sync conflict")
-		case errors.ErrInvalidInput:
-			response.BadRequest(c, "INVALID_ACTION", "unknown resolution action")
-		default:
-			_ = c.Error(err)
-			response.InternalServerError(c)
-		}
-		return
-	}
-
-	response.OK(c, session)
 }
 
 func parseInt(s string, defaultValue int) int {

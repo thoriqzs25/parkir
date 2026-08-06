@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/thoriqzs/PARKIR/backend/internal/errors"
 )
 
@@ -14,6 +13,7 @@ type CreateOfflineSessionInput struct {
 	ID          string
 	LocationID  string
 	OperatorID  string
+	ShiftNumber int
 	Plate       string
 	CityCode    string
 	VehicleType string
@@ -21,7 +21,7 @@ type CreateOfflineSessionInput struct {
 }
 
 // CreateOfflineSession inserts a session that was created offline. It is idempotent
-// by session ID and detects duplicate active plates at the same location.
+// by session ID. The shift number is provided by the client (desktop app).
 func (s *Store) CreateOfflineSession(ctx context.Context, input CreateOfflineSessionInput) (*Session, error) {
 	// Idempotency: if the session already exists, return it unchanged.
 	existing, err := s.GetSessionByID(ctx, input.ID)
@@ -32,34 +32,18 @@ func (s *Store) CreateOfflineSession(ctx context.Context, input CreateOfflineSes
 		return nil, err
 	}
 
-	// Conflict detection: another ACTIVE/PENDING_PAYMENT session with the same plate
-	// at the same location causes this offline record to be flagged for review.
-	conflict := false
-	_, dupErr := s.FindActiveSessionByPlate(ctx, input.LocationID, input.Plate)
-	if dupErr == nil {
-		conflict = true
-	} else if dupErr != errors.ErrNotFound {
-		return nil, fmt.Errorf("check duplicate plate: %w", dupErr)
-	}
-
-	// Determine shift number from check-in time
-	shiftConfig, err := s.GetShiftConfigByTimeWithFallback(ctx, input.LocationID, input.CheckInAt)
-	if err != nil {
-		return nil, fmt.Errorf("determine shift for offline session: %w", err)
-	}
-
 	var session Session
 	err = s.pool.QueryRow(ctx, `
 		INSERT INTO sessions (
 			id, location_id, operator_id, shift_number, plate, city_code, vehicle_type,
 			state, check_in_at, offline_sync, sync_conflict
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, 'ACTIVE', $8, true, $9)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, 'ACTIVE', $8, true, false)
 		RETURNING id, location_id, operator_id, shift_number, plate, city_code, vehicle_type, state,
 		          check_in_at, check_out_at, fee_amount, rate_snapshot, offline_sync, sync_conflict,
 		          created_at, updated_at
-	`, input.ID, input.LocationID, input.OperatorID, shiftConfig.ShiftNumber, input.Plate,
-		input.CityCode, input.VehicleType, input.CheckInAt, conflict).Scan(
+	`, input.ID, input.LocationID, input.OperatorID, input.ShiftNumber, input.Plate,
+		input.CityCode, input.VehicleType, input.CheckInAt).Scan(
 		&session.ID, &session.LocationID, &session.OperatorID, &session.ShiftNumber, &session.Plate, &session.CityCode,
 		&session.VehicleType, &session.State, &session.CheckInAt, &session.CheckOutAt, &session.FeeAmount,
 		&session.RateSnapshot, &session.OfflineSync, &session.SyncConflict, &session.CreatedAt, &session.UpdatedAt,
@@ -147,148 +131,4 @@ func (s *Store) CreateOfflineTransaction(ctx context.Context, input CreateOfflin
 	}
 
 	return &tx, nil
-}
-
-// ListSyncConflictsFilters filters conflict review queries.
-type ListSyncConflictsFilters struct {
-	LocationID string
-	Resolved   *bool
-}
-
-// ListSyncConflicts returns offline-synced sessions whose plate conflicts with an
-// active session at the location.
-func (s *Store) ListSyncConflicts(ctx context.Context, filters ListSyncConflictsFilters, limit, offset int) ([]Session, int, error) {
-	where := "WHERE offline_sync = true AND sync_conflict = true"
-	args := []interface{}{}
-	argIdx := 1
-
-	if filters.LocationID != "" {
-		where += fmt.Sprintf(" AND location_id = $%d", argIdx)
-		args = append(args, filters.LocationID)
-		argIdx++
-	}
-
-	countArgs := append([]interface{}{}, args...)
-	var total int
-	countQuery := "SELECT COUNT(*) FROM sessions " + where
-	if err := s.pool.QueryRow(ctx, countQuery, countArgs...).Scan(&total); err != nil {
-		return nil, 0, fmt.Errorf("count sync conflicts: %w", err)
-	}
-
-	query := "SELECT id, location_id, operator_id, shift_number, plate, city_code, vehicle_type, state, " +
-		"check_in_at, check_out_at, fee_amount, rate_snapshot, offline_sync, sync_conflict, " +
-		"created_at, updated_at FROM sessions " + where +
-		fmt.Sprintf(" ORDER BY check_in_at DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
-	args = append(args, limit, offset)
-
-	rows, err := s.pool.Query(ctx, query, args...)
-	if err != nil {
-		return nil, 0, fmt.Errorf("list sync conflicts: %w", err)
-	}
-	defer rows.Close()
-
-	var sessions []Session
-	for rows.Next() {
-		var session Session
-		if err := rows.Scan(
-			&session.ID, &session.LocationID, &session.OperatorID, &session.ShiftNumber, &session.Plate, &session.CityCode,
-			&session.VehicleType, &session.State, &session.CheckInAt, &session.CheckOutAt, &session.FeeAmount,
-			&session.RateSnapshot, &session.OfflineSync, &session.SyncConflict, &session.CreatedAt, &session.UpdatedAt,
-		); err != nil {
-			return nil, 0, fmt.Errorf("scan sync conflict: %w", err)
-		}
-		sessions = append(sessions, session)
-	}
-
-	return sessions, total, rows.Err()
-}
-
-// ResolveSyncConflictAction describes how a manager resolves a conflict.
-type ResolveSyncConflictAction string
-
-const (
-	// ResolveConflictVoidOffline voids the offline-synced session.
-	ResolveConflictVoidOffline ResolveSyncConflictAction = "VOID_OFFLINE"
-	// ResolveConflictIgnore clears the sync_conflict flag without voiding.
-	ResolveConflictIgnore ResolveSyncConflictAction = "IGNORE"
-)
-
-// ResolveSyncConflictInput captures a manager's resolution choice.
-type ResolveSyncConflictInput struct {
-	SessionID string
-	Action    ResolveSyncConflictAction
-	VoidReason string
-	ResolvedBy string
-}
-
-// ResolveSyncConflict applies a manager's resolution to a conflicting offline session.
-func (s *Store) ResolveSyncConflict(ctx context.Context, input ResolveSyncConflictInput) (*Session, error) {
-	session, err := s.GetSessionByID(ctx, input.SessionID)
-	if err != nil {
-		return nil, err
-	}
-	if !session.OfflineSync || !session.SyncConflict {
-		return nil, errors.ErrInvalidState
-	}
-
-	switch input.Action {
-	case ResolveConflictVoidOffline:
-		session, err = s.UpdateSessionToVoided(ctx, session.ID)
-		if err != nil {
-			return nil, err
-		}
-		// Also void any associated transaction.
-		tx, err := s.GetTransactionBySessionID(ctx, session.ID)
-		if err == nil && !tx.Voided {
-			_, _ = s.VoidTransaction(ctx, tx.ID, input.ResolvedBy, input.VoidReason)
-		}
-	case ResolveConflictIgnore:
-		var updated Session
-		err = s.pool.QueryRow(ctx, `
-			UPDATE sessions
-			SET sync_conflict = false,
-			    updated_at = now()
-			WHERE id = $1
-			RETURNING id, location_id, operator_id, shift_number, plate, city_code, vehicle_type, state,
-			          check_in_at, check_out_at, fee_amount, rate_snapshot, offline_sync, sync_conflict,
-			          created_at, updated_at
-		`, session.ID).Scan(
-			&updated.ID, &updated.LocationID, &updated.OperatorID, &updated.ShiftNumber, &updated.Plate, &updated.CityCode,
-			&updated.VehicleType, &updated.State, &updated.CheckInAt, &updated.CheckOutAt, &updated.FeeAmount,
-			&updated.RateSnapshot, &updated.OfflineSync, &updated.SyncConflict, &updated.CreatedAt, &updated.UpdatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("ignore sync conflict: %w", err)
-		}
-		session = &updated
-	default:
-		return nil, errors.ErrInvalidInput
-	}
-
-	return session, nil
-}
-
-// MarkSessionSyncConflict sets or clears the sync_conflict flag on a session.
-func (s *Store) MarkSessionSyncConflict(ctx context.Context, sessionID string, conflict bool) (*Session, error) {
-	var session Session
-	err := s.pool.QueryRow(ctx, `
-		UPDATE sessions
-		SET sync_conflict = $2,
-		    updated_at = now()
-		WHERE id = $1
-		RETURNING id, location_id, operator_id, shift_number, plate, city_code, vehicle_type, state,
-		          check_in_at, check_out_at, fee_amount, rate_snapshot, offline_sync, sync_conflict,
-		          created_at, updated_at
-	`, sessionID, conflict).Scan(
-		&session.ID, &session.LocationID, &session.OperatorID, &session.ShiftNumber, &session.Plate, &session.CityCode,
-		&session.VehicleType, &session.State, &session.CheckInAt, &session.CheckOutAt, &session.FeeAmount,
-		&session.RateSnapshot, &session.OfflineSync, &session.SyncConflict, &session.CreatedAt, &session.UpdatedAt,
-	)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return nil, errors.ErrNotFound
-		}
-		return nil, fmt.Errorf("mark sync conflict: %w", err)
-	}
-	return &session, nil
 }
