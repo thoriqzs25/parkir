@@ -4,51 +4,16 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ============================================
--- PERMISSIONS
--- ============================================
-
-CREATE TABLE permissions (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    code            VARCHAR(100) UNIQUE NOT NULL,
-    name            VARCHAR(200) NOT NULL,
-    description     TEXT,
-    resource        VARCHAR(50) NOT NULL,
-    action          VARCHAR(50) NOT NULL,
-    created_tz      TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_permissions_code ON permissions (code);
-CREATE INDEX idx_permissions_resource ON permissions (resource);
-
--- ============================================
--- ROLES
+-- ROLES & USERS
 -- ============================================
 
 CREATE TABLE roles (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name            VARCHAR(100) UNIQUE NOT NULL,
-    description     TEXT,
+    permissions     JSONB NOT NULL DEFAULT '[]',
     created_tz      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_tz      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
--- ============================================
--- ROLE_PERMISSIONS (junction table)
--- ============================================
-
-CREATE TABLE role_permissions (
-    role_id         UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
-    permission_id   UUID NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
-    granted_tz      TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (role_id, permission_id)
-);
-
-CREATE INDEX idx_role_permissions_role ON role_permissions (role_id);
-CREATE INDEX idx_role_permissions_permission ON role_permissions (permission_id);
-
--- ============================================
--- USERS
--- ============================================
 
 CREATE TABLE users (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),

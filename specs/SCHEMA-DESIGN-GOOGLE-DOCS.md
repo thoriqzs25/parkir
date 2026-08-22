@@ -126,37 +126,14 @@
 
 ---
 
-### PERMISSIONS
-| Field | Type | Constraints | Description |
-|-------|------|-------------|-------------|
-| id | UUID | PRIMARY KEY | |
-| code | VARCHAR(100) | UNIQUE, NOT NULL | e.g., "sessions:view", "gates:edit" |
-| name | VARCHAR(200) | NOT NULL | Display name |
-| description | TEXT | | |
-| resource | VARCHAR(50) | NOT NULL | e.g., "sessions", "gates", "transactions" |
-| action | VARCHAR(50) | NOT NULL | e.g., "view", "create", "edit", "delete" |
-| created_tz | TIMESTAMPTZ | DEFAULT now() | |
-
----
-
 ### ROLES
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
 | id | UUID | PRIMARY KEY | |
 | name | VARCHAR(100) | UNIQUE, NOT NULL | |
-| description | TEXT | | |
+| permissions | JSONB | DEFAULT '[]' | e.g., ["sessions:view", "gates:edit"] |
 | created_tz | TIMESTAMPTZ | DEFAULT now() | |
 | updated_tz | TIMESTAMPTZ | DEFAULT now() | |
-
----
-
-### ROLE_PERMISSIONS
-| Field | Type | Constraints | Description |
-|-------|------|-------------|-------------|
-| role_id | UUID | FK → roles(id), NOT NULL | |
-| permission_id | UUID | FK → permissions(id), NOT NULL | |
-| granted_tz | TIMESTAMPTZ | DEFAULT now() | |
-| PRIMARY KEY | | (role_id, permission_id) | Composite key |
 
 ---
 
@@ -218,8 +195,6 @@
 | INCIDENTS | LOCATIONS | belongs to | location_id | Many-to-One |
 | AUDIT_LOGS | LOCATIONS | belongs to | location_id | Many-to-One |
 | USERS | ROLES | belongs to | role_id | Many-to-One |
-| ROLE_PERMISSIONS | ROLES | belongs to | role_id | Many-to-One |
-| ROLE_PERMISSIONS | PERMISSIONS | belongs to | permission_id | Many-to-One |
 | TRANSACTIONS | SESSIONS | belongs to | session_id | One-to-One |
 | INCIDENTS | USERS | resolved by | resolved_by | Many-to-One |
 | AUDIT_LOGS | USERS | performed by | user_id | Many-to-One |
