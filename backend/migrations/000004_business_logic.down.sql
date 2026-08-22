@@ -1,4 +1,0 @@
-DROP TABLE IF EXISTS receipt_sequences;
-DROP TABLE IF EXISTS transactions;
-DROP TABLE IF EXISTS sessions;
-DROP TABLE IF EXISTS shifts;

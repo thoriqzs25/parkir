@@ -1,14 +1,19 @@
-DROP TABLE IF EXISTS incident_notes CASCADE;
+-- Drop all tables in reverse dependency order
+DROP TABLE IF EXISTS audit_logs CASCADE;
 DROP TABLE IF EXISTS incidents CASCADE;
 DROP TABLE IF EXISTS transactions CASCADE;
 DROP TABLE IF EXISTS sessions CASCADE;
-DROP TABLE IF EXISTS shifts CASCADE;
-DROP TABLE IF EXISTS user_permission_grants CASCADE;
-DROP TABLE IF EXISTS user_role_locations CASCADE;
-DROP TABLE IF EXISTS location_rates CASCADE;
+DROP TABLE IF EXISTS shift_configs CASCADE;
+DROP TABLE IF EXISTS rate_configs CASCADE;
+DROP TABLE IF EXISTS gates CASCADE;
+DROP TABLE IF EXISTS locations CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS roles CASCADE;
-DROP TABLE IF EXISTS locations CASCADE;
-DROP TABLE IF EXISTS alert_configs CASCADE;
-DROP TABLE IF EXISTS alerts CASCADE;
-DROP TABLE IF EXISTS audit_logs CASCADE;
+
+-- Drop trigger functions
+DROP FUNCTION IF EXISTS check_rate_overlap();
+DROP FUNCTION IF EXISTS check_shift_config_overlap();
+DROP FUNCTION IF EXISTS update_updated_tz();
+
+-- Drop extension
+DROP EXTENSION IF EXISTS "pgcrypto";
